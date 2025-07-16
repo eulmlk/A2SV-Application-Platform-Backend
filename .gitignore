@@ -1,22 +1,36 @@
-# Byte-compiled / optimized / DLL files
+# ==============================================================================
+# Configuration Files - NEVER commit secrets!
+# ==============================================================================
+.env
+.env.*
+!.env.example
+
+# ==============================================================================
+# Virtual Environments - Never commit dependencies
+# ==============================================================================
+.venv/
+venv/
+env/
+ENV/
+.Python/
+lib/
+lib64/
+
+# ==============================================================================
+# Python Caches & Artifacts - Generated files that can be rebuilt
+# ==============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# C extensions
-*.so
-
 # Distribution / packaging
-.Python
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -26,17 +40,9 @@ wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
+# ==============================================================================
+# Testing & Coverage Reports
+# ==============================================================================
 htmlcov/
 .tox/
 .nox/
@@ -49,37 +55,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak
-venv.bak
-
-# IDE / Editor specific files
+# ==============================================================================
+# IDE & Editor Specific Files
+# ==============================================================================
 .idea/
 .vscode/
 *.suo
@@ -88,9 +66,41 @@ venv.bak
 *.sln
 *.sw?
 
-# SQLite databases
+# ==============================================================================
+# Database Files - Local database instances
+# ==============================================================================
 *.sqlite3
 *.db
+*.db-journal
 
-# Miscellaneous
+# ==============================================================================
+# OS Specific Files
+# ==============================================================================
 .DS_Store
+Thumbs.db
+
+# ==============================================================================
+# Logs & Miscellaneous
+# ==============================================================================
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Other Frameworks / Tools (from your original file) ---
+# Django stuff:
+local_settings.py
+# Flask stuff:
+instance/
+.webassets-cache
+# Scrapy stuff:
+.scrapy
+# Sphinx documentation
+docs/_build/
+# Jupyter Notebook
+.ipynb_checkpoints
+# PyInstaller
+*.manifest
+*.spec
+# Translations
+*.mo
+*.pot

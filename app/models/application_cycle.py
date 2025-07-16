@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime
 from sqlalchemy.sql import func
-from app.models.base import Base
+from app.core.database import Base
 
 class ApplicationCycle(Base):
     __tablename__ = "application_cycles"

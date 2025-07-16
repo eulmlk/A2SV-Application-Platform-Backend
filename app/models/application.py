@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
-from app.models.base import Base
+from app.core.database import Base
 
 class Application(Base):
     __tablename__ = "applications"

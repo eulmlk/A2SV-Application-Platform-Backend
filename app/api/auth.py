@@ -1,54 +1,153 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.schemas.auth import RegisterRequest, RegisterResponse, LoginRequest, TokenResponse, TokenRefreshRequest, AccessTokenResponse
-from app.core.database import get_db
+from typing import List  # Important for list responses, though not used in this file
+
+# Import your request schemas
+from app.schemas.auth import (
+    RegisterRequest,
+    LoginRequest,
+    TokenRefreshRequest,
+)
+
+# Import your RESPONSE schemas - we will use these inside the wrapper
+from app.schemas.auth import (
+    RegisterResponse,
+    TokenResponse,
+    AccessTokenResponse,
+)
+
+# Import the generic APIResponse wrapper
+from app.schemas.base import APIResponse
+
+# Import domain entities and repository interfaces
+from app.domain.entities import User as UserEntity  # Renaming to avoid confusion
 from app.repositories.sqlalchemy_impl import UserRepository
+
+# Import dependencies and helpers
+from app.core.database import get_db
 from app.models.role import Role as RoleModel
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
+from app.core.security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 import uuid
+import datetime
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register/", response_model=RegisterResponse, status_code=201)
+
+@router.post(
+    "/register/",
+    # The response is an APIResponse containing a single RegisterResponse object
+    response_model=APIResponse[RegisterResponse],
+    status_code=status.HTTP_201_CREATED,
+)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Handles user registration.
+    """
     user_repo = UserRepository(db)
+
     # Check if user exists
     if user_repo.get_by_email(data.email):
-        raise HTTPException(status_code=400, detail="Email already registered.")
-    # Get Applicant role (assume id=1 or fetch by name)
-    role = db.query(RoleModel).filter(RoleModel.name == "Applicant").first()
-    if not role:
-        raise HTTPException(status_code=500, detail="Applicant role not found.")
-    user_id = uuid.uuid4()
-    hashed_pw = hash_password(data.password)
-    user = user_repo.create(
-        type('User', (), {
-            'id': user_id,
-            'email': data.email,
-            'password': hashed_pw,
-            'full_name': data.full_name,
-            'role_id': role.id,
-            'created_at': None,
-            'updated_at': None
-        })()
-    )
-    return RegisterResponse(id=str(user.id), full_name=user.full_name, email=user.email)
+        # We will let a custom exception handler format the final JSON
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists.",
+        )
 
-@router.post("/token/", response_model=TokenResponse)
+    # Get the 'applicant' role from the database
+    role = db.query(RoleModel).filter(RoleModel.name == "applicant").first()
+    if not role:
+        # This is a server configuration error, not a user error
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error: 'applicant' role not found.",
+        )
+
+    # Use your actual domain entity for creation - this is much cleaner
+    user_to_create = UserEntity(
+        id=uuid.uuid4(),
+        email=data.email,
+        password=hash_password(data.password),
+        full_name=data.full_name,
+        role_id=role.id,
+        created_at=datetime.datetime.utcnow(),
+        updated_at=datetime.datetime.utcnow(),
+    )
+
+    # The repository handles the database interaction
+    created_user = user_repo.create(user_to_create)
+
+    # Prepare the response data using your Pydantic response schema
+    response_data = RegisterResponse(
+        id=str(created_user.id),
+        full_name=created_user.full_name,
+        email=created_user.email,
+    )
+
+    # Wrap the data in the standard APIResponse
+    return APIResponse(data=response_data, message="User registered successfully.")
+
+
+@router.post(
+    "/token/",
+    # The response is an APIResponse containing a TokenResponse
+    response_model=APIResponse[TokenResponse],
+)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
+    """
+    Handles user login and token generation.
+    """
     user_repo = UserRepository(db)
     user = user_repo.get_by_email(data.email)
-    if not user or not verify_password(data.password, user.password):
-        raise HTTPException(status_code=401, detail="Incorrect email or password.")
-    access = create_access_token({"sub": str(user.id)})
-    refresh = create_refresh_token({"sub": str(user.id)})
-    return TokenResponse(access=access, refresh=refresh)
 
-@router.post("/token/refresh/", response_model=AccessTokenResponse)
+    if not user or not verify_password(data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password.",
+            headers={"WWW-Authenticate": "Bearer"},  # Standard for 401
+        )
+
+    # Create tokens
+    access_token = create_access_token({"sub": str(user.id)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+
+    # Prepare the response data
+    response_data = TokenResponse(access=access_token, refresh=refresh_token)
+
+    return APIResponse(data=response_data, message="Login successful.")
+
+
+@router.post(
+    "/token/refresh/",
+    # The response is an APIResponse containing an AccessTokenResponse
+    response_model=APIResponse[AccessTokenResponse],
+)
 def refresh_token(data: TokenRefreshRequest):
+    """
+    Refreshes an access token using a valid refresh token.
+    """
     payload = decode_token(data.refresh)
+
+    # Ensure the token is a valid refresh token with a subject
     if payload is None or "sub" not in payload:
-        raise HTTPException(status_code=401, detail="Invalid refresh token.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token.",
+        )
+
     user_id = payload["sub"]
-    access = create_access_token({"sub": user_id})
-    return AccessTokenResponse(access=access) 
+
+    # Create a new access token
+    new_access_token = create_access_token({"sub": user_id})
+
+    # Prepare the response data
+    response_data = AccessTokenResponse(access=new_access_token)
+
+    return APIResponse(
+        data=response_data, message="Access token refreshed successfully."
+    )
