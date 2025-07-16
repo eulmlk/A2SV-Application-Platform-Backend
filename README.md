@@ -129,14 +129,14 @@ You must now replace the placeholder values in the file with your actual local s
 
 `DATABASE_URL`: This is the connection string for your PostgreSQL database. Replace user, password, and potentially a2sv_app with the details of your own PostgreSQL instance.
 
-- user: Your PostgreSQL username (often postgres by default).
-- password: The password you set for that user.
-- localhost:5432: This is usually correct if your database is running on your local machine.
-- a2sv_app: The name of the database you want to connect to. Make sure this database exists on your server.
+- `user`: Your PostgreSQL username (often postgres by default).
+- `password`: The password you set for that user.
+- `localhost:5432`: This is usually correct if your database is running on your local machine.
+- `a2sv_app`: The name of the database you want to connect to. Make sure this database exists on your server.
 
 `JWT_SECRET_KEY`: This is a critical security value. You must replace the placeholder text with a long, random, and secret string. This key is used to sign your authentication tokens.
 
-- You can generate a strong key easily by running the following command in your terminal (for windows run it using Git Bash not Command Prompt/Powershell):
+- You can generate a strong key easily by running the following command in your terminal (for windows run it using Git Bash not Command Prompt or Powershell):
 
 ```bash
 openssl rand -hex 32
