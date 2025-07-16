@@ -83,83 +83,7 @@ Install all required Python packages from the requirements.txt file.
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment Variables
-
-This step creates a local configuration file that tells your application how to connect to the database and what secret keys to use for security. This information is stored in a .env file, which is kept private and is never committed to version control.
-
-#### 4.1. Create a New .env File
-
-In the root directory of your project, create a new, empty file and name it exactly `.env`.
-
-You can do this using your code editor (File -> New File) or with a terminal command:
-
-- On macOS and Linux:
-
-```bash
-touch .env
-```
-
-- On Windows (Command Prompt):
-
-```bash
-type nul > .env
-```
-
-#### 4.2. Add the Required Configuration Template
-
-Open your new, empty .env file and paste the following content into it. This will serve as your template.
-
-```env
-# Your PostgreSQL connection string
-DATABASE_URL=postgresql://user:password@localhost:5432/a2sv_app
-
-# Generate a strong secret key for JWT
-JWT_SECRET_KEY=your_super_secret_jwt_key
-
-# Standard JWT settings
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
-Use code with caution.
-```
-
-#### 4.3. Update the Configuration Values
-
-You must now replace the placeholder values in the file with your actual local settings.
-
-`DATABASE_URL`: This is the connection string for your PostgreSQL database. Replace user, password, and potentially a2sv_app with the details of your own PostgreSQL instance.
-
-- `user`: Your PostgreSQL username (often postgres by default).
-- `password`: The password you set for that user.
-- `localhost:5432`: This is usually correct if your database is running on your local machine.
-- `a2sv_app`: The name of the database you want to connect to. Make sure this database exists on your server.
-
-`JWT_SECRET_KEY`: This is a critical security value. You must replace the placeholder text with a long, random, and secret string. This key is used to sign your authentication tokens.
-
-- You can generate a strong key easily by running the following command in your terminal (for windows run it using Git Bash not Command Prompt or Powershell):
-
-```bash
-openssl rand -hex 32
-```
-
-Copy the long string of text it outputs and paste it as the value for `JWT_SECRET_KEY`.
-
-Other Variables
-The remaining variables (`JWT_ALGORITHM`, etc.) have sensible defaults that you typically do not need to change for local development.
-
-After editing, your `.env` file might look something like this:
-
-```env
-DATABASE_URL="postgresql://postgres:my-secret-pg-password@localhost:5432/a2sv_app"
-JWT_SECRET_KEY="d4e1f8a7b3c2d5f6e8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1"
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=7
-```
-
-Save the changes to your .env file. The application is now configured to connect to your database and handle security correctly.
-
-#### 5. Set Up the Database
+### 4. Set Up the Database
 
 This project uses Alembic to manage database schema migrations. After configuring your `DATABASE_URL`, run the following command to apply all migrations and create the necessary tables in your database.
 
@@ -167,7 +91,7 @@ This project uses Alembic to manage database schema migrations. After configurin
 alembic upgrade head
 ```
 
-#### 6. Run the Application
+### 5. Run the Application
 
 You can now start the FastAPI development server.
 
