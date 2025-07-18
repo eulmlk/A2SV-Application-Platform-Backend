@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.auth import router as auth_router
 from app.api.applications import router as applications_router
+from app.api.admin import router as admin_router
+from app.api.cycles import router as cycles_router
 import os
 
 app = FastAPI()
@@ -23,3 +25,5 @@ app.mount("/static", StaticFiles(directory="uploads"), name="static")
 # Routers
 app.include_router(auth_router)
 app.include_router(applications_router)
+app.include_router(admin_router)
+app.include_router(cycles_router)

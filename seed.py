@@ -8,8 +8,7 @@ def seed_roles():
     """Seeds the database with initial roles."""
     db = SessionLocal()
 
-    # --- DEFINE YOUR REQUIRED ROLES HERE ---
-    initial_roles = ["applicant", "reviewer", "admin"]
+    initial_roles = ["applicant", "reviewer","manager", "admin"]
 
     print("Seeding initial roles...")
 

@@ -37,4 +37,10 @@ def applicant_required(current_user: User = Depends(get_current_user)):
     # Assume role_id 1 is Applicant, or check by role name if needed
     if current_user.role_id != 1:
         raise HTTPException(status_code=403, detail="Applicant access required.")
+    return current_user
+
+def admin_required(current_user: User = Depends(get_current_user)):
+    # Check by role_id or fetch role name if needed
+    if current_user.role_id != 4:  # Adjust if your admin role_id is different
+        raise HTTPException(status_code=403, detail="Admin access required.")
     return current_user 

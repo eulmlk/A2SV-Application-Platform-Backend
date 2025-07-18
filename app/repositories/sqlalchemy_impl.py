@@ -4,6 +4,10 @@ from app.models.user import User as UserModel
 from app.models.application import Application as ApplicationModel
 from app.repositories.interfaces import IUserRepository, IApplicationRepository
 import uuid
+from app.models.role import Role as RoleModel
+from app.models.application_cycle import ApplicationCycle as ApplicationCycleModel
+from app.domain.entities import Role, ApplicationCycle
+from app.repositories.interfaces import IRoleRepository, IApplicationCycleRepository
 
 class UserRepository(IUserRepository):
     def __init__(self, db: Session):
@@ -69,6 +73,33 @@ class UserRepository(IUserRepository):
             created_at=u.created_at,
             updated_at=u.updated_at
         ) for u in users]
+
+    def update(self, user_id: uuid.UUID, **kwargs):
+        user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            return None
+        for key, value in kwargs.items():
+            if hasattr(user, key) and value is not None:
+                setattr(user, key, value)
+        self.db.commit()
+        self.db.refresh(user)
+        return User(
+            id=user.id,
+            email=user.email,
+            password=user.password,
+            full_name=user.full_name,
+            role_id=user.role_id,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
+
+    def delete(self, user_id: uuid.UUID):
+        user = self.db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            return False
+        self.db.delete(user)
+        self.db.commit()
+        return True
 
 class ApplicationRepository(IApplicationRepository):
     def __init__(self, db: Session):
@@ -165,3 +196,141 @@ class ApplicationRepository(IApplicationRepository):
 
     def list_all(self):
         return []  # Not needed for applicant workflow 
+
+class RoleRepository(IRoleRepository):
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_name(self, name: str):
+        role = self.db.query(RoleModel).filter(RoleModel.name == name).first()
+        if role:
+            return Role(id=role.id, name=role.name)
+        return None
+
+    def get_by_id(self, role_id: int):
+        role = self.db.query(RoleModel).filter(RoleModel.id == role_id).first()
+        if role:
+            return Role(id=role.id, name=role.name)
+        return None
+
+    def list_all(self):
+        roles = self.db.query(RoleModel).all()
+        return [Role(id=r.id, name=r.name) for r in roles]
+
+class ApplicationCycleRepository(IApplicationCycleRepository):
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_active(self):
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.is_active == True).first()
+        if cycle:
+            return ApplicationCycle(
+                id=cycle.id,
+                name=cycle.name,
+                start_date=cycle.start_date,
+                end_date=cycle.end_date,
+                is_active=cycle.is_active,
+                created_at=cycle.created_at
+            )
+        return None
+
+    def get_by_id(self, cycle_id: int):
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.id == cycle_id).first()
+        if cycle:
+            return ApplicationCycle(
+                id=cycle.id,
+                name=cycle.name,
+                start_date=cycle.start_date,
+                end_date=cycle.end_date,
+                is_active=cycle.is_active,
+                created_at=cycle.created_at
+            )
+        return None
+    
+    def get_by_name(self, name: str):
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.name == name).first()
+        if cycle:
+            return ApplicationCycle(
+                id=cycle.id,
+                name=cycle.name,
+                start_date=cycle.start_date,
+                end_date=cycle.end_date,
+                is_active=cycle.is_active,
+                created_at=cycle.created_at
+            )
+        return None
+
+    def create(self, cycle: ApplicationCycle):
+        db_cycle = ApplicationCycleModel(
+            name=cycle.name,
+            start_date=cycle.start_date,
+            end_date=cycle.end_date,
+            is_active=cycle.is_active
+        )
+        self.db.add(db_cycle)
+        self.db.commit()
+        self.db.refresh(db_cycle)
+        return ApplicationCycle(
+            id=db_cycle.id,
+            name=db_cycle.name,
+            start_date=db_cycle.start_date,
+            end_date=db_cycle.end_date,
+            is_active=db_cycle.is_active,
+            created_at=db_cycle.created_at
+        )
+
+    def activate(self, cycle_id: int):
+        # Deactivate all
+        self.db.query(ApplicationCycleModel).update({ApplicationCycleModel.is_active: False})
+        # Activate one
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.id == cycle_id).first()
+        if not cycle:
+            return None
+        cycle.is_active = True
+        self.db.commit()
+        self.db.refresh(cycle)
+        return ApplicationCycle(
+            id=cycle.id,
+            name=cycle.name,
+            start_date=cycle.start_date,
+            end_date=cycle.end_date,
+            is_active=cycle.is_active,
+            created_at=cycle.created_at
+        )
+
+    def list_all(self):
+        cycles = self.db.query(ApplicationCycleModel).all()
+        return [ApplicationCycle(
+            id=c.id,
+            name=c.name,
+            start_date=c.start_date,
+            end_date=c.end_date,
+            is_active=c.is_active,
+            created_at=c.created_at
+        ) for c in cycles] 
+
+    def update(self, cycle_id: int, **kwargs):
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.id == cycle_id).first()
+        if not cycle:
+            return None
+        for key, value in kwargs.items():
+            if hasattr(cycle, key) and value is not None:
+                setattr(cycle, key, value)
+        self.db.commit()
+        self.db.refresh(cycle)
+        return ApplicationCycle(
+            id=cycle.id,
+            name=cycle.name,
+            start_date=cycle.start_date,
+            end_date=cycle.end_date,
+            is_active=cycle.is_active,
+            created_at=cycle.created_at
+        )
+
+    def delete(self, cycle_id: int):
+        cycle = self.db.query(ApplicationCycleModel).filter(ApplicationCycleModel.id == cycle_id).first()
+        if not cycle:
+            return False
+        self.db.delete(cycle)
+        self.db.commit()
+        return True 
