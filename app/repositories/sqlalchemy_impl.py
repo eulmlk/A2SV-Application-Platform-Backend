@@ -182,6 +182,40 @@ class ApplicationRepository(IApplicationRepository):
             updated_at=db_app.updated_at
         )
 
+    def update(self, application: Application):
+        db_app = self.db.query(ApplicationModel).filter(ApplicationModel.id == application.id).first()
+        if not db_app:
+            return None
+        for key, value in application.__dict__.items():
+            if hasattr(db_app, key) and value is not None:
+                setattr(db_app, key, value)
+
+        self.db.commit()
+        self.db.refresh(db_app)
+        return Application(
+            id=db_app.id,
+            applicant_id=db_app.applicant_id,
+            cycle_id=db_app.cycle_id,
+            status=db_app.status,
+            school=db_app.school,
+            degree=db_app.degree,
+            leetcode_handle=db_app.leetcode_handle,
+            codeforces_handle=db_app.codeforces_handle,
+            essay=db_app.essay,
+            resume_url=db_app.resume_url,
+            assigned_reviewer_id=db_app.assigned_reviewer_id,
+            decision_notes=db_app.decision_notes,
+            updated_at=db_app.updated_at
+        )
+
+    def delete(self, application_id: uuid.UUID):
+        app = self.db.query(ApplicationModel).filter(ApplicationModel.id == application_id).first()
+        if not app:
+            return False
+        self.db.delete(app)
+        self.db.commit()
+        return True
+
     def list_by_reviewer(self, reviewer_id: uuid.UUID):
         return []  # Not needed for applicant workflow
 
