@@ -19,11 +19,11 @@ class ApplicationResponse(BaseModel):
     codeforces_handle: str
     essay: str
     resume_url: str
-    submitted_at: datetime
+    submitted_at: Optional[datetime]
     updated_at: datetime
 
 class ApplicationStatusResponse(BaseModel):
     id: str
     status: str
     school: str
-    submitted_at: datetime 
+    submitted_at: Optional[datetime] 

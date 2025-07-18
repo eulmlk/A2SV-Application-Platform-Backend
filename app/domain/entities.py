@@ -27,7 +27,7 @@ class ApplicationCycle:
         self.created_at = created_at
 
 class Application:
-    def __init__(self, id: uuid.UUID, applicant_id: uuid.UUID, cycle_id: int, status: str, school: str, degree: str, leetcode_handle: str, codeforces_handle: str, essay: str, resume_url: str, assigned_reviewer_id: Optional[uuid.UUID], decision_notes: Optional[str], submitted_at: datetime, updated_at: datetime):
+    def __init__(self, id: uuid.UUID, applicant_id: uuid.UUID, cycle_id: int, status: str, school: str, degree: str, leetcode_handle: str, codeforces_handle: str, essay: str, resume_url: str, assigned_reviewer_id: Optional[uuid.UUID], decision_notes: Optional[str], updated_at: datetime, submitted_at: Optional[datetime]):
         self.id = id
         self.applicant_id = applicant_id
         self.cycle_id = cycle_id
