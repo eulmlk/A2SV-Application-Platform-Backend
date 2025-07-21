@@ -16,10 +16,10 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access: str
-    refresh: str
+    refresh: str | None = None  # Made refresh optional with a default of None
 
 class TokenRefreshRequest(BaseModel):
     refresh: str
 
 class AccessTokenResponse(BaseModel):
-    access: str 
+    access: str
