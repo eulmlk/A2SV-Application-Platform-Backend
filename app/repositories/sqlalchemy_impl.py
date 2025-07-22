@@ -205,6 +205,7 @@ class ApplicationRepository(IApplicationRepository):
             resume_url=db_app.resume_url,
             assigned_reviewer_id=db_app.assigned_reviewer_id,
             decision_notes=db_app.decision_notes,
+            submitted_at=db_app.submitted_at,
             updated_at=db_app.updated_at
         )
 

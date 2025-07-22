@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.schemas.admin import (
-    AdminCreateUserRequest, AdminUserResponse, AdminCycleCreateRequest, AdminCycleResponse,  AdminUpdateUserRequest, AdminUpdateCycleRequest, AdminUserDetailResponse
+    AdminCreateUserRequest, AdminUserResponse, AdminCycleCreateRequest, AdminCycleResponse, 
+    AdminUpdateUserRequest, AdminUpdateCycleRequest, AdminUserDetailResponse
 )
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import UserRepository, RoleRepository, ApplicationCycleRepository
@@ -11,14 +12,17 @@ from app.domain.entities import User, ApplicationCycle
 from app.schemas.auth import TokenResponse
 from app.schemas.base import APIResponse
 import uuid
-from datetime import datetime,timezone
+from datetime import datetime, timezone
+
+# Import bearer_scheme from auth.py
+from app.api.auth import bearer_scheme
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-@router.get("/users/{user_id}/", response_model=APIResponse[AdminUserDetailResponse])
+@router.get("/users/{user_id}/", response_model=APIResponse[AdminUserDetailResponse], dependencies=[Depends(bearer_scheme)])
 def get_user_by_id(
     user_id: str,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     user_repo = UserRepository(db)
@@ -40,7 +44,7 @@ def get_user_by_id(
 
     return APIResponse(data=response_data, message="User retrieved successfully.")
 
-@router.post("/login/", response_model=APIResponse[TokenResponse])
+@router.post("/login/", response_model=APIResponse[TokenResponse])  # No dependency needed for login
 def admin_login(
     data: dict,
     db: Session = Depends(get_db)
@@ -65,10 +69,10 @@ def admin_login(
     response_data = TokenResponse(access=access, refresh=refresh)
     return APIResponse(data=response_data, message="Login successful.")
 
-@router.post("/users/", response_model=APIResponse[AdminUserResponse], status_code=201)
+@router.post("/users/", response_model=APIResponse[AdminUserResponse], status_code=201, dependencies=[Depends(bearer_scheme)])
 def create_user(
     data: AdminCreateUserRequest,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     user_repo = UserRepository(db)
@@ -91,8 +95,8 @@ def create_user(
     response_data = AdminUserResponse(id=str(created.id), full_name=created.full_name, email=created.email, role=role.name)
     return APIResponse(data=response_data, message="User created successfully.")
 
-@router.get("/users/", response_model=APIResponse[list[AdminUserResponse]])
-def list_users(current_user = Depends(admin_required), db: Session = Depends(get_db)):
+@router.get("/users/", response_model=APIResponse[list[AdminUserResponse]], dependencies=[Depends(bearer_scheme)])
+def list_users(current_user=Depends(admin_required), db: Session = Depends(get_db)):
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
     users = user_repo.list_all()
@@ -101,12 +105,11 @@ def list_users(current_user = Depends(admin_required), db: Session = Depends(get
     response_data = [AdminUserResponse(id=str(u.id), full_name=u.full_name, email=u.email, role=roles.get(u.role_id, "")) for u in users]
     return APIResponse(data=response_data, message="Users retrieved successfully.")
 
-
-@router.put("/users/{user_id}/", response_model=APIResponse[AdminUserResponse])
+@router.put("/users/{user_id}/", response_model=APIResponse[AdminUserResponse], dependencies=[Depends(bearer_scheme)])
 def update_user(
     user_id: str,
     data: AdminUpdateUserRequest,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     user_repo = UserRepository(db)
@@ -139,10 +142,10 @@ def update_user(
     response_data = AdminUserResponse(id=str(updated.id), full_name=updated.full_name, email=updated.email, role=role_name)
     return APIResponse(data=response_data, message="User updated successfully.")
 
-@router.delete("/users/{user_id}/", response_model=APIResponse[AdminUserResponse])
+@router.delete("/users/{user_id}/", response_model=APIResponse[AdminUserResponse], dependencies=[Depends(bearer_scheme)])
 def delete_user(
     user_id: str,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     user_repo = UserRepository(db)
@@ -156,13 +159,12 @@ def delete_user(
     if not deleted:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    return APIResponse( message="User deleted successfully.")
+    return APIResponse(message="User deleted successfully.")
 
-
-@router.post("/cycles/", response_model=APIResponse[AdminCycleResponse], status_code=201)
+@router.post("/cycles/", response_model=APIResponse[AdminCycleResponse], status_code=201, dependencies=[Depends(bearer_scheme)])
 def create_cycle(
     data: AdminCycleCreateRequest,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     cycle_repo = ApplicationCycleRepository(db)
@@ -192,10 +194,10 @@ def create_cycle(
     )
     return APIResponse(data=response_data, message="Cycle created successfully.")
 
-@router.patch("/cycles/{cycle_id}/activate/", response_model=APIResponse[AdminCycleResponse])
+@router.patch("/cycles/{cycle_id}/activate/", response_model=APIResponse[AdminCycleResponse], dependencies=[Depends(bearer_scheme)])
 def activate_cycle(
     cycle_id: int,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     cycle_repo = ApplicationCycleRepository(db)
@@ -205,12 +207,11 @@ def activate_cycle(
 
     return APIResponse(data=activated, message=f"Cycle {activated.name} is now active.")
 
-
-@router.put("/cycles/{cycle_id}/", response_model=APIResponse[AdminCycleResponse])
+@router.put("/cycles/{cycle_id}/", response_model=APIResponse[AdminCycleResponse], dependencies=[Depends(bearer_scheme)])
 def update_cycle(
     cycle_id: int,
     data: AdminUpdateCycleRequest,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     cycle_repo = ApplicationCycleRepository(db)
@@ -243,10 +244,10 @@ def update_cycle(
     )
     return APIResponse(data=response_data, message="Cycle updated successfully.")
 
-@router.delete("/cycles/{cycle_id}/", response_model=APIResponse[AdminCycleResponse])
+@router.delete("/cycles/{cycle_id}/", response_model=APIResponse[AdminCycleResponse], dependencies=[Depends(bearer_scheme)])
 def delete_cycle(
     cycle_id: int,
-    current_user = Depends(admin_required),
+    current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
     cycle_repo = ApplicationCycleRepository(db)
@@ -254,4 +255,3 @@ def delete_cycle(
     if not deleted:
         raise HTTPException(status_code=404, detail="Cycle not found.")
     return APIResponse(message="Cycle deleted successfully.")
-

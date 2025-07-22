@@ -12,13 +12,15 @@ from datetime import datetime
 import cloudinary.uploader  
 import shutil
 
+# Import bearer_scheme from auth.py
+from app.api.auth import bearer_scheme
+
 router = APIRouter(prefix="/applications", tags=["applications"])
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
-@router.post("/", response_model=APIResponse[ApplicationResponse], status_code=201)
+@router.post("/", response_model=APIResponse[ApplicationResponse], status_code=201, dependencies=[Depends(bearer_scheme)])
 def create_application(
     school: str = Form(...),
     degree: str = Form(...),
@@ -106,8 +108,8 @@ def create_application(
         success=True,
     )
 
-@router.get("/my-status/", response_model=APIResponse[ApplicationStatusResponse])
-def get_my_status(current_user = Depends(applicant_required), db: Session = Depends(get_db)):
+@router.get("/my-status/", response_model=APIResponse[ApplicationStatusResponse], dependencies=[Depends(bearer_scheme)])
+def get_my_status(current_user=Depends(applicant_required), db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_applicant_id(current_user.id)
     if not app:
@@ -125,9 +127,8 @@ def get_my_status(current_user = Depends(applicant_required), db: Session = Depe
         success=True,
     )
 
-
-@router.get("/{application_id}/", response_model=APIResponse[ApplicationResponse])
-def get_application(application_id: str, current_user = Depends(applicant_required), db: Session = Depends(get_db)):
+@router.get("/{application_id}/", response_model=APIResponse[ApplicationResponse], dependencies=[Depends(bearer_scheme)])
+def get_application(application_id: str, current_user=Depends(applicant_required), db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
 
     try:
@@ -160,9 +161,8 @@ def get_application(application_id: str, current_user = Depends(applicant_requir
         success=True,
     )
 
-
-@router.put("/{application_id}/", response_model=APIResponse[ApplicationResponse])
-def update_application(application_id: str, current_user = Depends(applicant_required), db: Session = Depends(get_db)):
+@router.put("/{application_id}/", response_model=APIResponse[ApplicationResponse], dependencies=[Depends(bearer_scheme)])
+def update_application(application_id: str, current_user=Depends(applicant_required), db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:
@@ -195,8 +195,8 @@ def update_application(application_id: str, current_user = Depends(applicant_req
         success=True,
     )
 
-@router.delete("/{application_id}/", response_model=APIResponse[ApplicationResponse])
-def delete_application(application_id: str, current_user = Depends(applicant_required), db: Session = Depends(get_db)):
+@router.delete("/{application_id}/", response_model=APIResponse[ApplicationResponse], dependencies=[Depends(bearer_scheme)])
+def delete_application(application_id: str, current_user=Depends(applicant_required), db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:
@@ -216,8 +216,8 @@ def delete_application(application_id: str, current_user = Depends(applicant_req
         success=True,
     )
 
-@router.patch("/{application_id}/", response_model=APIResponse[ApplicationResponse])
-def submit_application(application_id: str, current_user = Depends(applicant_required), db: Session = Depends(get_db)):
+@router.patch("/{application_id}/", response_model=APIResponse[ApplicationResponse], dependencies=[Depends(bearer_scheme)])
+def submit_application(application_id: str, current_user=Depends(applicant_required), db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:

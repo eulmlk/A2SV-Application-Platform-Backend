@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import List  # Important for list responses, though not used in this file
 
@@ -30,14 +31,13 @@ from app.core.security import (
     hash_password,
     verify_password,
     create_access_token,
-    create_refresh_token,
     decode_token,
 )
 import uuid
 import datetime
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
+bearer_scheme = HTTPBearer()
 
 @router.post(
     "/register/",
@@ -92,7 +92,6 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     # Wrap the data in the standard APIResponse
     return APIResponse(data=response_data, message="User registered successfully.")
 
-
 @router.post(
     "/token/",
     # The response is an APIResponse containing a TokenResponse
@@ -112,32 +111,28 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},  # Standard for 401
         )
 
-    # Create tokens
+    # Create a single Bearer token
     access_token = create_access_token({"sub": str(user.id)})
-    refresh_token = create_refresh_token({"sub": str(user.id)})
-
-    # Prepare the response data
-    response_data = TokenResponse(access=access_token, refresh=refresh_token)
+    response_data = TokenResponse(access=access_token, refresh=None)  # Now compatible with updated schema
 
     return APIResponse(data=response_data, message="Login successful.")
-
 
 @router.post(
     "/token/refresh/",
     # The response is an APIResponse containing an AccessTokenResponse
     response_model=APIResponse[AccessTokenResponse],
 )
-def refresh_token(data: TokenRefreshRequest):
+def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
     """
-    Refreshes an access token using a valid refresh token.
+    Refreshes an access token using a valid Bearer token.
     """
-    payload = decode_token(data.refresh)
+    payload = decode_token(credentials.credentials)
 
-    # Ensure the token is a valid refresh token with a subject
+    # Ensure the token is valid with a subject
     if payload is None or "sub" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token.",
+            detail="Invalid or expired token.",
         )
 
     user_id = payload["sub"]
@@ -151,3 +146,8 @@ def refresh_token(data: TokenRefreshRequest):
     return APIResponse(
         data=response_data, message="Access token refreshed successfully."
     )
+
+# Use bearer_scheme as a dependency in protected endpoints
+def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    token = credentials.credentials
+    # Validate token and proceed (e.g., decode and check expiration)
