@@ -8,6 +8,7 @@ from app.api.applications import router as applications_router
 from app.api.admin import router as admin_router
 from app.api.cycles import router as cycles_router
 from app.api.manager import router as manager_router
+from app.api.profile import router as profile_router
 import os
 
 app = FastAPI()
@@ -42,3 +43,4 @@ app.include_router(applications_router)
 app.include_router(admin_router)
 app.include_router(cycles_router)
 app.include_router(manager_router)
+app.include_router(profile_router)
