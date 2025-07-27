@@ -7,8 +7,8 @@ class ApplicationSubmitRequest(BaseModel):
     degree: str
     leetcode_handle: str
     codeforces_handle: str
-    essay: str
-    # resume: file upload handled separately
+    essay_why_a2sv: str
+    essay_about_you: str
 
 class ApplicationResponse(BaseModel):
     id: str
@@ -17,7 +17,8 @@ class ApplicationResponse(BaseModel):
     degree: str
     leetcode_handle: str
     codeforces_handle: str
-    essay: str
+    essay_why_a2sv: str
+    essay_about_you: str
     resume_url: str
     submitted_at: Optional[datetime]
     updated_at: datetime

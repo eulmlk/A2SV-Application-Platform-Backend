@@ -32,12 +32,15 @@ from app.core.security import (
     verify_password,
     create_access_token,
     decode_token,
+    require_token_type,  # <-- import the new helper
+    create_refresh_token,
 )
 import uuid
 import datetime
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer_scheme = HTTPBearer()
+
 
 @router.post(
     "/register/",
@@ -92,6 +95,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     # Wrap the data in the standard APIResponse
     return APIResponse(data=response_data, message="User registered successfully.")
 
+
 @router.post(
     "/token/",
     # The response is an APIResponse containing a TokenResponse
@@ -111,11 +115,13 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},  # Standard for 401
         )
 
-    # Create a single Bearer token
+    # Create both access and refresh tokens
     access_token = create_access_token({"sub": str(user.id)})
-    response_data = TokenResponse(access=access_token, refresh=None)  # Now compatible with updated schema
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    response_data = TokenResponse(access=access_token, refresh=refresh_token)
 
     return APIResponse(data=response_data, message="Login successful.")
+
 
 @router.post(
     "/token/refresh/",
@@ -126,7 +132,7 @@ def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_sch
     """
     Refreshes an access token using a valid Bearer token.
     """
-    payload = decode_token(credentials.credentials)
+    payload = require_token_type(credentials.credentials, "refresh")
 
     # Ensure the token is valid with a subject
     if payload is None or "sub" not in payload:
@@ -147,7 +153,10 @@ def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_sch
         data=response_data, message="Access token refreshed successfully."
     )
 
+
 # Use bearer_scheme as a dependency in protected endpoints
-def protected_endpoint(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-    token = credentials.credentials
+def protected_endpoint(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
+    payload = require_token_type(credentials.credentials, "access")
     # Validate token and proceed (e.g., decode and check expiration)

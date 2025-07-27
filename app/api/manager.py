@@ -1,28 +1,41 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
-from app.api import deps
-from app.domain.entities import Application, User
+from app.domain.entities import User
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.repositories.sqlalchemy_impl import ApplicationRepository, ApplicationCycleRepository, UserRepository
+from app.repositories.sqlalchemy_impl import (
+    ApplicationRepository,
+    ApplicationCycleRepository,
+    UserRepository,
+)
 from app.models.application import Application as ApplicationModel
-from datetime import datetime
-from app.api.auth import bearer_scheme  # Import your bearer_scheme
+from app.schemas.application import ApplicationResponse
+from app.api.auth import bearer_scheme
+from app.core.security import require_token_type
+from fastapi.security import HTTPAuthorizationCredentials
+from app.schemas.base import APIResponse
+from app.api.deps import manager_required
 import logging
 
 router = APIRouter(
     prefix="/manager/applications",
     tags=["Manager"],
-    dependencies=[Depends(bearer_scheme)]  # <-- This makes endpoints "locked" in Swagger UI
-)
+    dependencies=[
+        Depends(bearer_scheme)
+    ],  # <-- This makes endpoints "locked" in Swagger UI
+)       
 
-# Manager RBAC guard
-def manager_required(current_user: User = Depends(deps.get_current_user)):
-    if current_user.role_id != 3:
-        raise HTTPException(status_code=403, detail="Manager access required.")
-    return current_user
+
+
+
+# Helper to extract and validate access token from credentials
+def get_access_token_payload(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
+    return require_token_type(credentials.credentials, "access")
+
 
 # Response model for GET /manager/applications/
 class ApplicationSummary(BaseModel):
@@ -31,42 +44,28 @@ class ApplicationSummary(BaseModel):
     status: str
     assigned_reviewer_name: Optional[str]
 
+
 # Request/response models for PATCH endpoints
 class AssignReviewerRequest(BaseModel):
     reviewer_id: UUID
 
+
 class AssignReviewerResponse(BaseModel):
     message: str
+
 
 class DecideRequest(BaseModel):
     status: str  # Should be 'Accepted' or 'Rejected'
     decision_notes: Optional[str]
 
-class DecideResponse(BaseModel):
-    message: str
-
-class ApplicationDetailResponse(BaseModel):
-    id: UUID
-    applicant_id: UUID
-    cycle_id: int
-    status: str
-    school: str
-    degree: str
-    leetcode_handle: str
-    codeforces_handle: str
-    essay: str
-    resume_url: str
-    assigned_reviewer_id: Optional[UUID]
-    decision_notes: Optional[str]
-    submitted_at: Optional[datetime]
-    updated_at: datetime
-
-    class Config:
-        orm_mode = True
 
 # GET /manager/applications/
-@router.get("/", response_model=List[ApplicationSummary])
-def list_applications(status: Optional[str] = None, current_user: User = Depends(manager_required), db: Session = Depends(get_db)):
+@router.get("/", response_model=APIResponse[List[ApplicationSummary]])
+def list_applications(
+    status: Optional[str] = None,
+    current_user: User = Depends(manager_required),
+    db: Session = Depends(get_db),
+):
     app_repo = ApplicationRepository(db)
     cycle_repo = ApplicationCycleRepository(db)
     user_repo = UserRepository(db)
@@ -74,7 +73,9 @@ def list_applications(status: Optional[str] = None, current_user: User = Depends
     if not active_cycle:
         return []
     # Query all applications for the active cycle, optionally filter by status
-    query = db.query(ApplicationModel).filter(ApplicationModel.cycle_id == active_cycle.id)
+    query = db.query(ApplicationModel).filter(
+        ApplicationModel.cycle_id == active_cycle.id
+    )
     if status:
         query = query.filter(ApplicationModel.status == status)
     apps = query.all()
@@ -85,32 +86,56 @@ def list_applications(status: Optional[str] = None, current_user: User = Depends
         if app.assigned_reviewer_id:
             reviewer = user_repo.get_by_id(app.assigned_reviewer_id)
             reviewer_name = reviewer.full_name if reviewer else None
-        results.append(ApplicationSummary(
-            id=app.id,
-            applicant_name=applicant.full_name if applicant else "",
-            status=app.status,
-            assigned_reviewer_name=reviewer_name
-        ))
-    return results
+        results.append(
+            ApplicationSummary(
+                id=app.id,
+                applicant_name=applicant.full_name if applicant else "",
+                status=app.status,
+                assigned_reviewer_name=reviewer_name,
+            )
+        )
+    return APIResponse(data=results, message="Applications fetched successfully")
+
 
 # GET /manager/applications/{application_id}/
-@router.get("/{application_id}/", response_model=ApplicationDetailResponse)
-def get_application(application_id: UUID, current_user: User = Depends(manager_required), db: Session = Depends(get_db)):
+@router.get("/{application_id}/", response_model=APIResponse[ApplicationResponse])
+def get_application(
+    application_id: UUID,
+    current_user: User = Depends(manager_required),
+    db: Session = Depends(get_db),
+):
     app_repo = ApplicationRepository(db)
     application = app_repo.get_by_id(application_id)
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
-    return application
+
+    response_data = ApplicationResponse(
+        id=str(application.id),
+        status=application.status,
+        school=application.school,
+        degree=application.degree,
+        leetcode_handle=application.leetcode_handle,
+        codeforces_handle=application.codeforces_handle,
+        essay_why_a2sv=application.essay_why_a2sv,
+        essay_about_you=application.essay_about_you,
+        resume_url=application.resume_url,
+        submitted_at=application.submitted_at,
+        updated_at=application.updated_at,
+    )
+    return APIResponse(data=response_data, message="Application fetched successfully")
+
 
 # PATCH /manager/applications/{application_id}/assign/
-@router.patch("/{application_id}/assign/", response_model=AssignReviewerResponse)
+@router.patch("/{application_id}/assign/", response_model=APIResponse[None])
 def assign_reviewer(
     application_id: UUID,
     req: AssignReviewerRequest,
     current_user: User = Depends(manager_required),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    logging.info(f"Assign Reviewer called with application_id={application_id}, reviewer_id={req.reviewer_id}")
+    logging.info(
+        f"Assign Reviewer called with application_id={application_id}, reviewer_id={req.reviewer_id}"
+    )
 
     app_repo = ApplicationRepository(db)
     user_repo = UserRepository(db)  # <-- ADD THIS LINE
@@ -128,24 +153,28 @@ def assign_reviewer(
     try:
         application.assigned_reviewer_id = req.reviewer_id
         app_repo.update(application)
-        logging.info(f"Reviewer {req.reviewer_id} assigned to application {application_id}")
+        logging.info(
+            f"Reviewer {req.reviewer_id} assigned to application {application_id}"
+        )
     except Exception as e:
         logging.error(f"Error assigning reviewer: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-    return {
-        "message": "Reviewer assigned successfully.",
-        "debug": {
-            "application_id": str(application_id),
-            "reviewer_id": str(req.reviewer_id)
-        }
-    }
+    return APIResponse(message="Reviewer assigned successfully.")
+
 
 # PATCH /manager/applications/{application_id}/decide/
-@router.patch("/{application_id}/decide/", response_model=DecideResponse)
-def decide_application(application_id: UUID, req: DecideRequest, current_user: User = Depends(manager_required), db: Session = Depends(get_db)):
+@router.patch("/{application_id}/decide/", response_model=APIResponse[None])
+def decide_application(
+    application_id: UUID,
+    req: DecideRequest,
+    current_user: User = Depends(manager_required),
+    db: Session = Depends(get_db),
+):
     if req.status not in ["Accepted", "Rejected"]:
-        raise HTTPException(status_code=400, detail="Status must be 'Accepted' or 'Rejected'.")
+        raise HTTPException(
+            status_code=400, detail="Status must be 'Accepted' or 'Rejected'."
+        )
     app_repo = ApplicationRepository(db)
     application = app_repo.get_by_id(application_id)
     if not application:
@@ -153,4 +182,4 @@ def decide_application(application_id: UUID, req: DecideRequest, current_user: U
     application.status = req.status
     application.decision_notes = req.decision_notes
     app_repo.update(application)
-    return {"message": "Decision recorded successfully."}
+    return APIResponse(message="Decision recorded successfully.")

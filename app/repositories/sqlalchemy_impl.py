@@ -117,7 +117,8 @@ class ApplicationRepository(IApplicationRepository):
                 degree=app.degree,
                 leetcode_handle=app.leetcode_handle,
                 codeforces_handle=app.codeforces_handle,
-                essay=app.essay,
+                essay_why_a2sv=app.essay_why_a2sv,
+                essay_about_you=app.essay_about_you,
                 resume_url=app.resume_url,
                 assigned_reviewer_id=app.assigned_reviewer_id,
                 decision_notes=app.decision_notes,
@@ -138,7 +139,8 @@ class ApplicationRepository(IApplicationRepository):
                 degree=app.degree,
                 leetcode_handle=app.leetcode_handle,
                 codeforces_handle=app.codeforces_handle,
-                essay=app.essay,
+                essay_why_a2sv=app.essay_why_a2sv,
+                essay_about_you=app.essay_about_you,
                 resume_url=app.resume_url,
                 assigned_reviewer_id=app.assigned_reviewer_id,
                 decision_notes=app.decision_notes,
@@ -157,7 +159,8 @@ class ApplicationRepository(IApplicationRepository):
             degree=application.degree,
             leetcode_handle=application.leetcode_handle,
             codeforces_handle=application.codeforces_handle,
-            essay=application.essay,
+            essay_why_a2sv=application.essay_why_a2sv,
+            essay_about_you=application.essay_about_you,
             resume_url=application.resume_url,
             assigned_reviewer_id=application.assigned_reviewer_id,
             decision_notes=application.decision_notes
@@ -174,7 +177,8 @@ class ApplicationRepository(IApplicationRepository):
             degree=db_app.degree,
             leetcode_handle=db_app.leetcode_handle,
             codeforces_handle=db_app.codeforces_handle,
-            essay=db_app.essay,
+            essay_why_a2sv=db_app.essay_why_a2sv,
+            essay_about_you=db_app.essay_about_you,
             resume_url=db_app.resume_url,
             assigned_reviewer_id=db_app.assigned_reviewer_id,
             decision_notes=db_app.decision_notes,
@@ -201,7 +205,8 @@ class ApplicationRepository(IApplicationRepository):
             degree=db_app.degree,
             leetcode_handle=db_app.leetcode_handle,
             codeforces_handle=db_app.codeforces_handle,
-            essay=db_app.essay,
+            essay_why_a2sv=db_app.essay_why_a2sv,
+            essay_about_you=db_app.essay_about_you,
             resume_url=db_app.resume_url,
             assigned_reviewer_id=db_app.assigned_reviewer_id,
             decision_notes=db_app.decision_notes,
@@ -218,7 +223,24 @@ class ApplicationRepository(IApplicationRepository):
         return True
 
     def list_by_reviewer(self, reviewer_id: uuid.UUID):
-        return []  # Not needed for applicant workflow
+        apps = self.db.query(ApplicationModel).filter(ApplicationModel.assigned_reviewer_id == reviewer_id).all()
+        return [Application(
+            id=a.id,
+            applicant_id=a.applicant_id,
+            cycle_id=a.cycle_id,
+            status=a.status,
+            school=a.school,
+            degree=a.degree,
+            leetcode_handle=a.leetcode_handle,
+            codeforces_handle=a.codeforces_handle,
+            essay_why_a2sv=a.essay_why_a2sv,
+            essay_about_you=a.essay_about_you,
+            resume_url=a.resume_url,
+            assigned_reviewer_id=a.assigned_reviewer_id,
+            decision_notes=a.decision_notes,
+            submitted_at=a.submitted_at,
+            updated_at=a.updated_at
+        ) for a in apps]
 
     def list_by_status(self, status: str):
         return []  # Not needed for applicant workflow
@@ -369,3 +391,30 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
         self.db.delete(cycle)
         self.db.commit()
         return True 
+
+class ReviewRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_by_application_id(self, application_id: uuid.UUID):
+        from app.models.review import Review as ReviewModel
+        review = self.db.query(ReviewModel).filter(ReviewModel.application_id == application_id).first()
+        return review
+
+    def create_or_update(self, application_id: uuid.UUID, reviewer_id: uuid.UUID, data: dict):
+        from app.models.review import Review as ReviewModel
+        review = self.db.query(ReviewModel).filter(ReviewModel.application_id == application_id).first()
+        if not review:
+            review = ReviewModel(application_id=application_id, reviewer_id=reviewer_id, **data)
+            self.db.add(review)
+        else:
+            for key, value in data.items():
+                setattr(review, key, value)
+            review.reviewer_id = reviewer_id
+        self.db.commit()
+        self.db.refresh(review)
+        return review
+
+    def list_by_reviewer(self, reviewer_id: uuid.UUID):
+        from app.models.review import Review as ReviewModel
+        return self.db.query(ReviewModel).filter(ReviewModel.reviewer_id == reviewer_id).all() 

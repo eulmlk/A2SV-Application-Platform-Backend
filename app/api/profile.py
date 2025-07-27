@@ -3,16 +3,21 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import UserRepository
-from app.core.security import verify_password, hash_password
+from app.core.security import verify_password, hash_password, require_token_type
 from app.schemas.auth import ProfileResponse, ProfileUpdateRequest, ChangePasswordRequest
 from app.domain.entities import User
-from app.api.auth import bearer_scheme  # Import bearer_scheme
+from app.api.auth import bearer_scheme
+from fastapi.security import HTTPAuthorizationCredentials
 
 router = APIRouter(
     prefix="/profile",
     tags=["Profile"],
     dependencies=[Depends(bearer_scheme)]  # Lock endpoints in Swagger UI
 )
+
+# Helper to extract and validate access token from credentials
+def get_access_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    return require_token_type(credentials.credentials, "access")
 
 @router.get("/me", response_model=ProfileResponse)
 def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

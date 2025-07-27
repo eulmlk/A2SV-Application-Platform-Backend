@@ -27,7 +27,24 @@ class ApplicationCycle:
         self.created_at = created_at
 
 class Application:
-    def __init__(self, id: uuid.UUID, applicant_id: uuid.UUID, cycle_id: int, status: str, school: str, degree: str, leetcode_handle: str, codeforces_handle: str, essay: str, resume_url: str, assigned_reviewer_id: Optional[uuid.UUID], decision_notes: Optional[str], updated_at: datetime, submitted_at: Optional[datetime]):
+    def __init__(
+        self,
+        id: uuid.UUID,
+        applicant_id: uuid.UUID,
+        cycle_id: int,
+        status: str,
+        school: str,
+        degree: str,
+        leetcode_handle: str,
+        codeforces_handle: str,
+        essay_why_a2sv: str,
+        essay_about_you: str,
+        resume_url: str,
+        assigned_reviewer_id: Optional[uuid.UUID],
+        decision_notes: Optional[str],
+        updated_at: datetime,
+        submitted_at: Optional[datetime],
+    ):
         self.id = id
         self.applicant_id = applicant_id
         self.cycle_id = cycle_id
@@ -36,7 +53,8 @@ class Application:
         self.degree = degree
         self.leetcode_handle = leetcode_handle
         self.codeforces_handle = codeforces_handle
-        self.essay = essay
+        self.essay_why_a2sv = essay_why_a2sv
+        self.essay_about_you = essay_about_you
         self.resume_url = resume_url
         self.assigned_reviewer_id = assigned_reviewer_id
         self.decision_notes = decision_notes

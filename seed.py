@@ -1,39 +1,47 @@
-# seed.py
+import os
+from app.core.database import Base, get_db
+from app.models.role import Role
+from app.models.user import User
+from app.core.security import hash_password
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from app.core.config import settings
 
-from app.core.database import SessionLocal
-from app.models.role import Role  # Assuming your Role model is in app/models/role.py
+engine = create_engine(settings.DATABASE_URL)
+Base.metadata.create_all(engine)
 
+def seed_roles_and_admin():
+    db = Session(bind=engine)
+    # Seed roles
+    roles = [
+        {"id": 1, "name": "applicant"},
+        {"id": 2, "name": "reviewer"},
+        {"id": 3, "name": "manager"},
+        {"id": 4, "name": "admin"},
+    ]
+    for role in roles:
+        if not db.query(Role).filter_by(id=role["id"]).first():
+            db.add(Role(id=role["id"], name=role["name"]))
+    db.commit()
 
-def seed_roles():
-    """Seeds the database with initial roles."""
-    db = SessionLocal()
-
-    initial_roles = ["applicant", "reviewer","manager", "admin"]
-
-    print("Seeding initial roles...")
-
-    try:
-        for role_name in initial_roles:
-            # Check if role already exists
-            role_exists = db.query(Role).filter(Role.name == role_name).first()
-            if not role_exists:
-                # Create and add the new role
-                new_role = Role(name=role_name)
-                db.add(new_role)
-                print(f"  - Created role: '{role_name}'")
-            else:
-                print(f"  - Role '{role_name}' already exists. Skipping.")
-
-        # Commit all the changes at once
+    # Seed admin user from environment variables
+    admin_email = os.getenv("ADMIN_EMAIL", "some_admin_email@gmail.com")
+    admin_password = os.getenv("ADMIN_PASSWORD", "some_admin_password")
+    admin_role_id = 4
+    if not db.query(User).filter_by(email=admin_email).first():
+        admin_user = User(
+            id=None,  # Let default uuid be generated
+            email=admin_email,
+            password=hash_password(admin_password),
+            full_name="Admin User",
+            role_id=admin_role_id
+        )
+        db.add(admin_user)
         db.commit()
-        print("✅ Seeding complete.")
-
-    except Exception as e:
-        print(f"❌ An error occurred during seeding: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
+        print(f"Admin user created: {admin_email} / {admin_password}")
+    else:
+        print(f"Admin user already exists: {admin_email}")
+    db.close()
 
 if __name__ == "__main__":
-    seed_roles()
+    seed_roles_and_admin()

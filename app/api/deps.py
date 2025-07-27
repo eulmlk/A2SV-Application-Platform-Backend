@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
-from app.core.security import decode_token
+from app.core.security import decode_token, require_token_type
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import UserRepository
 from app.models.user import User as UserModel
@@ -18,7 +18,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    payload = decode_token(token)
+    payload = require_token_type(token, "access")
     if payload is None or "sub" not in payload:
         raise credentials_exception
     user_id = payload["sub"]
@@ -43,4 +43,14 @@ def admin_required(current_user: User = Depends(get_current_user)):
     # Check by role_id or fetch role name if needed
     if current_user.role_id != 4:  # Adjust if your admin role_id is different
         raise HTTPException(status_code=403, detail="Admin access required.")
+    return current_user
+
+def reviewer_required(current_user: User = Depends(get_current_user)):
+    if current_user.role_id != 2:  # Adjust if reviewer role_id is different
+        raise HTTPException(status_code=403, detail="Reviewer access required.")
     return current_user 
+
+def manager_required(current_user: User = Depends(get_current_user)):
+    if current_user.role_id != 3 and current_user.role_id != 4:
+        raise HTTPException(status_code=403, detail="Manager or Admin access required.")
+    return current_user

@@ -4,8 +4,15 @@ from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import ApplicationCycleRepository
 from app.schemas.cycle import PublicCycleResponse
 from app.schemas.base import APIResponse
+from app.api.auth import bearer_scheme
+from app.core.security import require_token_type
+from fastapi.security import HTTPAuthorizationCredentials
 
 router = APIRouter(prefix="/cycles", tags=["cycles"])
+
+# Helper to extract and validate access token from credentials
+def get_access_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    return require_token_type(credentials.credentials, "access")
 
 @router.get("/", response_model=APIResponse[list[PublicCycleResponse]])
 def get_all_cycles(db: Session = Depends(get_db)):

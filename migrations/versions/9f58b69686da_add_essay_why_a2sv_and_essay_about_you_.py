@@ -1,8 +1,8 @@
-"""Create initial tables
+"""Add essay_why_a2sv and essay_about_you to applications
 
-Revision ID: 2648d6fc6eb4
+Revision ID: 9f58b69686da
 Revises: 
-Create Date: 2025-07-18 19:01:17.741865
+Create Date: 2025-07-25 22:53:12.511763
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '2648d6fc6eb4'
+revision: str = '9f58b69686da'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -59,7 +59,8 @@ def upgrade() -> None:
     sa.Column('degree', sa.String(length=255), nullable=False),
     sa.Column('leetcode_handle', sa.String(length=100), nullable=False),
     sa.Column('codeforces_handle', sa.String(length=100), nullable=False),
-    sa.Column('essay', sa.Text(), nullable=False),
+    sa.Column('essay_why_a2sv', sa.Text(), nullable=False),
+    sa.Column('essay_about_you', sa.Text(), nullable=False),
     sa.Column('resume_url', sa.String(length=512), nullable=False),
     sa.Column('assigned_reviewer_id', sa.UUID(), nullable=True),
     sa.Column('decision_notes', sa.Text(), nullable=True),
@@ -76,7 +77,8 @@ def upgrade() -> None:
     sa.Column('reviewer_id', sa.UUID(), nullable=True),
     sa.Column('activity_check_notes', sa.Text(), nullable=True),
     sa.Column('resume_score', sa.Integer(), nullable=True),
-    sa.Column('essay_score', sa.Integer(), nullable=True),
+    sa.Column('essay_why_a2sv_score', sa.Integer(), nullable=True),
+    sa.Column('essay_about_you_score', sa.Integer(), nullable=True),
     sa.Column('technical_interview_score', sa.Integer(), nullable=True),
     sa.Column('behavioral_interview_score', sa.Integer(), nullable=True),
     sa.Column('interview_notes', sa.Text(), nullable=True),

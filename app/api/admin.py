@@ -6,25 +6,32 @@ from app.schemas.admin import (
 )
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import UserRepository, RoleRepository, ApplicationCycleRepository
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, require_token_type
 from app.api.deps import admin_required
 from app.domain.entities import User, ApplicationCycle
 from app.schemas.auth import TokenResponse
 from app.schemas.base import APIResponse
 import uuid
 from datetime import datetime, timezone
+from fastapi.security import HTTPAuthorizationCredentials
 
 # Import bearer_scheme from auth.py
 from app.api.auth import bearer_scheme
+
+# Helper to extract and validate access token from credentials
+def get_access_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    return require_token_type(credentials.credentials, "access")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/users/{user_id}/", response_model=APIResponse[AdminUserDetailResponse], dependencies=[Depends(bearer_scheme)])
 def get_user_by_id(
     user_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
 
@@ -72,9 +79,11 @@ def admin_login(
 @router.post("/users/", response_model=APIResponse[AdminUserResponse], status_code=201, dependencies=[Depends(bearer_scheme)])
 def create_user(
     data: AdminCreateUserRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
     if user_repo.get_by_email(data.email):
@@ -96,7 +105,12 @@ def create_user(
     return APIResponse(data=response_data, message="User created successfully.")
 
 @router.get("/users/", response_model=APIResponse[list[AdminUserResponse]], dependencies=[Depends(bearer_scheme)])
-def list_users(current_user=Depends(admin_required), db: Session = Depends(get_db)):
+def list_users(
+    current_user=Depends(admin_required),
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
+    get_access_token_payload(credentials)
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
     users = user_repo.list_all()
@@ -109,9 +123,11 @@ def list_users(current_user=Depends(admin_required), db: Session = Depends(get_d
 def update_user(
     user_id: str,
     data: AdminUpdateUserRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
 
@@ -145,9 +161,11 @@ def update_user(
 @router.delete("/users/{user_id}/", response_model=APIResponse[AdminUserResponse], dependencies=[Depends(bearer_scheme)])
 def delete_user(
     user_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     user_repo = UserRepository(db)
     user_uuid = None
     try:
@@ -164,9 +182,11 @@ def delete_user(
 @router.post("/cycles/", response_model=APIResponse[AdminCycleResponse], status_code=201, dependencies=[Depends(bearer_scheme)])
 def create_cycle(
     data: AdminCycleCreateRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     cycle_repo = ApplicationCycleRepository(db)
 
     if cycle_repo.get_by_name(data.name):
@@ -197,9 +217,11 @@ def create_cycle(
 @router.patch("/cycles/{cycle_id}/activate/", response_model=APIResponse[AdminCycleResponse], dependencies=[Depends(bearer_scheme)])
 def activate_cycle(
     cycle_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     cycle_repo = ApplicationCycleRepository(db)
     activated = cycle_repo.activate(cycle_id)
     if not activated:
@@ -211,9 +233,11 @@ def activate_cycle(
 def update_cycle(
     cycle_id: int,
     data: AdminUpdateCycleRequest,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     cycle_repo = ApplicationCycleRepository(db)
 
     existing_cycle = cycle_repo.get_by_id(cycle_id)
@@ -247,9 +271,11 @@ def update_cycle(
 @router.delete("/cycles/{cycle_id}/", response_model=APIResponse[AdminCycleResponse], dependencies=[Depends(bearer_scheme)])
 def delete_cycle(
     cycle_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db)
 ):
+    get_access_token_payload(credentials)
     cycle_repo = ApplicationCycleRepository(db)
     deleted = cycle_repo.delete(cycle_id)
     if not deleted:
