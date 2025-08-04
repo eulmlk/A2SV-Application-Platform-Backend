@@ -16,7 +16,7 @@ from app.schemas.auth import (
 from app.schemas.base import APIResponse
 
 from app.domain.entities import User as UserEntity
-from app.repositories.sqlalchemy_impl import UserRepository
+from app.repositories.sqlalchemy_impl import RoleRepository, UserRepository
 
 from app.core.database import get_db
 from app.models.role import Role as RoleModel
@@ -84,7 +84,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     Handles user login and token generation.
     """
     user_repo = UserRepository(db)
+    role_repo = RoleRepository(db)
     user = user_repo.get_by_email(data.email)
+    role = role_repo.get_by_id(user.role_id)
 
     if not user or not verify_password(data.password, user.password):
         raise_unauthorized("Incorrect email or password.")
@@ -92,7 +94,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     # Create both access and refresh tokens
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
-    response_data = TokenResponse(access=access_token, refresh=refresh_token)
+
+    response_data = TokenResponse(access=access_token, refresh=refresh_token, role=role.name)
 
     return APIResponse(data=response_data, message="Login successful.")
 

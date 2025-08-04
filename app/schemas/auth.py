@@ -17,6 +17,7 @@ class LoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access: str
     refresh: str | None = None  # Made refresh optional with a default of None
+    role: str | None = None  # Added role field
 
 class TokenRefreshRequest(BaseModel):
     refresh: str
