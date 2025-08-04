@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.schemas.application import (
-    ApplicationSubmitRequest,
     ApplicationResponse,
     ApplicationStatusResponse,
 )
@@ -52,7 +51,7 @@ def get_access_token_payload(
 )
 def create_application(
     school: str = Form(...),
-    degree: str = Form(...),
+    student_id: str = Form(...),
     leetcode_handle: str = Form(...),
     codeforces_handle: str = Form(...),
     essay_why_a2sv: str = Form(...),
@@ -99,7 +98,7 @@ def create_application(
         cycle_id=active_cycle.id,
         status="in_progress",
         school=school,
-        degree=degree,
+        student_id=student_id,
         leetcode_handle=leetcode_handle,
         codeforces_handle=codeforces_handle,
         essay_why_a2sv=essay_why_a2sv,
@@ -116,7 +115,7 @@ def create_application(
         id=str(app.id),
         status=app.status,
         school=app.school,
-        degree=app.degree,
+        student_id=app.student_id,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -186,7 +185,7 @@ def get_application(
         id=str(app.id),
         status=app.status,
         school=app.school,
-        degree=app.degree,
+        student_id=app.student_id,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -212,6 +211,13 @@ def update_application(
     current_user=Depends(applicant_required),
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    school: str = Form(None),
+    student_id: str = Form(None),
+    leetcode_handle: str = Form(None),
+    codeforces_handle: str = Form(None),
+    essay_why_a2sv: str = Form(None),
+    essay_about_you: str = Form(None),
+    resume: UploadFile = File(None),
 ):
     get_access_token_payload(credentials)
     app_repo = ApplicationRepository(db)
@@ -222,12 +228,46 @@ def update_application(
         raise_forbidden("You are not authorized to update this application.")
     if app.status != "in_progress":
         raise_conflict("You can only update your application before it is submitted.")
+
+    if school is not None:
+        app.school = school
+    if student_id is not None:
+        app.student_id = student_id
+    if leetcode_handle is not None:
+        app.leetcode_handle = leetcode_handle
+    if codeforces_handle is not None:
+        app.codeforces_handle = codeforces_handle
+    if essay_why_a2sv is not None:
+        app.essay_why_a2sv = essay_why_a2sv
+    if essay_about_you is not None:
+        app.essay_about_you = essay_about_you
+
+    if resume is not None:
+        if not resume.filename.endswith(".pdf"):
+            raise_validation_error("Resume must be a PDF file.")
+        temp_file_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}_{resume.filename}")
+        try:
+            with open(temp_file_path, "wb") as buffer:
+                shutil.copyfileobj(resume.file, buffer)
+            result = cloudinary.uploader.upload(
+                temp_file_path,
+                resource_type="raw",
+                folder="resumes",
+            )
+            resume_url = result["secure_url"]
+            app.resume_url = resume_url
+        except Exception as e:
+            raise_internal_error(f"File upload process failed: {str(e)}")
+        finally:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+
     app_repo.update(app)
     response_data = ApplicationResponse(
         id=str(app.id),
         status=app.status,
         school=app.school,
-        degree=app.degree,
+        student_id=app.student_id,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -236,6 +276,7 @@ def update_application(
         submitted_at=app.submitted_at,
         updated_at=app.updated_at,
     )
+
     return APIResponse(
         data=response_data,
         message="Application updated successfully",
@@ -298,7 +339,7 @@ def submit_application(
         id=str(app.id),
         status=app.status,
         school=app.school,
-        degree=app.degree,
+        student_id=app.student_id,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,

@@ -1,7 +1,7 @@
 # app/core/schemas/base.py
 
 from pydantic import BaseModel
-from typing import Generic, TypeVar, Optional, List
+from typing import Generic, TypeVar, Optional
 
 # This creates a generic TypeVar. It can be any type.
 T = TypeVar("T")

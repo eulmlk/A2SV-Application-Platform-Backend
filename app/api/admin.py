@@ -49,7 +49,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get(
-    "/users/{user_id}/",    
+    "/users/{user_id}/",
     response_model=APIResponse[AdminUserResponse],
     dependencies=[Depends(bearer_scheme)],
 )
@@ -81,9 +81,7 @@ def get_user_by_id(
     return APIResponse(data=response_data, message="User retrieved successfully.")
 
 
-@router.post(
-    "/login/", response_model=APIResponse[TokenResponse]
-)
+@router.post("/login/", response_model=APIResponse[TokenResponse])
 def admin_login(data: dict, db: Session = Depends(get_db)):
     email = data.get("email")
     password = data.get("password")
@@ -100,7 +98,7 @@ def admin_login(data: dict, db: Session = Depends(get_db)):
     refresh = create_refresh_token({"sub": str(user.id)})
     role = role_repo.get_by_id(user.role_id) if user.role_id else None
     role_name = role.name if role else ""
-    response_data = TokenResponse(access=access, refresh=refresh)
+    response_data = TokenResponse(access=access, refresh=refresh, role=role_name)
     return APIResponse(data=response_data, message="Login successful.")
 
 
@@ -150,7 +148,9 @@ def create_user(
 )
 def list_users(
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    limit: int = Query(10, ge=1, le=100, description="Number of users per page (max 100)"),
+    limit: int = Query(
+        10, ge=1, le=100, description="Number of users per page (max 100)"
+    ),
     current_user=Depends(admin_required),
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),

@@ -55,7 +55,7 @@ class Application:
         cycle_id: int,
         status: str,
         school: str,
-        degree: str,
+        student_id: str,
         leetcode_handle: str,
         codeforces_handle: str,
         essay_why_a2sv: str,
@@ -71,7 +71,7 @@ class Application:
         self.cycle_id = cycle_id
         self.status = status
         self.school = school
-        self.degree = degree
+        self.student_id = student_id
         self.leetcode_handle = leetcode_handle
         self.codeforces_handle = codeforces_handle
         self.essay_why_a2sv = essay_why_a2sv

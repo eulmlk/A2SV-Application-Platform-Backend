@@ -137,7 +137,7 @@ def get_application(
         id=str(application.id),
         status=application.status,
         school=application.school,
-        degree=application.degree,
+        student_id=application.student_id,
         leetcode_handle=application.leetcode_handle,
         codeforces_handle=application.codeforces_handle,
         essay_why_a2sv=application.essay_why_a2sv,

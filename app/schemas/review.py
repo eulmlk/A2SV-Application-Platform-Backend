@@ -15,7 +15,7 @@ class FullApplication(BaseModel):
     applicant_name: str
     status: str
     school: str
-    degree: str
+    student_id: str
     leetcode_handle: str
     codeforces_handle: str
     essay_why_a2sv: str

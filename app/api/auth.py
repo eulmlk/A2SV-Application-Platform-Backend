@@ -95,7 +95,9 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 
-    response_data = TokenResponse(access=access_token, refresh=refresh_token, role=role.name)
+    response_data = TokenResponse(
+        access=access_token, refresh=refresh_token, role=role.name
+    )
 
     return APIResponse(data=response_data, message="Login successful.")
 
