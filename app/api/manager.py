@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
@@ -21,13 +21,11 @@ import logging
 
 router = APIRouter(
     prefix="/manager/applications",
-    tags=["Manager"],
+    tags=["managers"],
     dependencies=[
         Depends(bearer_scheme)
     ],  # <-- This makes endpoints "locked" in Swagger UI
-)       
-
-
+)
 
 
 # Helper to extract and validate access token from credentials
@@ -45,6 +43,13 @@ class ApplicationSummary(BaseModel):
     assigned_reviewer_name: Optional[str]
 
 
+class ApplicationListResponse(BaseModel):
+    applications: List[ApplicationSummary]
+    total_count: int
+    page: int
+    limit: int
+
+
 # Request/response models for PATCH endpoints
 class AssignReviewerRequest(BaseModel):
     reviewer_id: UUID
@@ -60,9 +65,11 @@ class DecideRequest(BaseModel):
 
 
 # GET /manager/applications/
-@router.get("/", response_model=APIResponse[List[ApplicationSummary]])
+@router.get("/", response_model=APIResponse[ApplicationListResponse])
 def list_applications(
     status: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(manager_required),
     db: Session = Depends(get_db),
 ):
@@ -71,14 +78,27 @@ def list_applications(
     user_repo = UserRepository(db)
     active_cycle = cycle_repo.get_active()
     if not active_cycle:
-        return []
+        return APIResponse(
+            data=ApplicationListResponse(
+                applications=[], total_count=0, page=page, limit=limit
+            ),
+            message="No active cycle found",
+        )
+
     # Query all applications for the active cycle, optionally filter by status
     query = db.query(ApplicationModel).filter(
         ApplicationModel.cycle_id == active_cycle.id
     )
     if status:
         query = query.filter(ApplicationModel.status == status)
-    apps = query.all()
+
+    # Get total count for pagination
+    total_count = query.count()
+
+    # Apply pagination
+    offset = (page - 1) * limit
+    apps = query.offset(offset).limit(limit).all()
+
     results = []
     for app in apps:
         applicant = user_repo.get_by_id(app.applicant_id)
@@ -94,7 +114,11 @@ def list_applications(
                 assigned_reviewer_name=reviewer_name,
             )
         )
-    return APIResponse(data=results, message="Applications fetched successfully")
+
+    response_data = ApplicationListResponse(
+        applications=results, total_count=total_count, page=page, limit=limit
+    )
+    return APIResponse(data=response_data, message="Applications fetched successfully")
 
 
 # GET /manager/applications/{application_id}/
@@ -138,7 +162,7 @@ def assign_reviewer(
     )
 
     app_repo = ApplicationRepository(db)
-    user_repo = UserRepository(db)  # <-- ADD THIS LINE
+    user_repo = UserRepository(db)
 
     application = app_repo.get_by_id(application_id)
     if not application:
@@ -152,6 +176,7 @@ def assign_reviewer(
 
     try:
         application.assigned_reviewer_id = req.reviewer_id
+        application.status = "pending_review"
         app_repo.update(application)
         logging.info(
             f"Reviewer {req.reviewer_id} assigned to application {application_id}"
@@ -171,10 +196,11 @@ def decide_application(
     current_user: User = Depends(manager_required),
     db: Session = Depends(get_db),
 ):
-    if req.status not in ["Accepted", "Rejected"]:
+    if req.status not in ["accepted", "rejected"]:
         raise HTTPException(
-            status_code=400, detail="Status must be 'Accepted' or 'Rejected'."
+            status_code=400, detail="Status must be 'accepted' or 'rejected'."
         )
+
     app_repo = ApplicationRepository(db)
     application = app_repo.get_by_id(application_id)
     if not application:

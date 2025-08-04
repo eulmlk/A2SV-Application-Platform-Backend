@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from app.schemas.application import (
     ApplicationSubmitRequest,
@@ -13,6 +13,13 @@ from app.repositories.sqlalchemy_impl import (
 from app.api.deps import applicant_required
 from app.domain.entities import Application
 from app.schemas.base import APIResponse
+from app.core.utils import (
+    raise_not_found,
+    raise_forbidden,
+    raise_conflict,
+    raise_validation_error,
+    raise_internal_error,
+)
 import uuid
 import os
 from datetime import datetime
@@ -29,8 +36,11 @@ router = APIRouter(prefix="/applications", tags=["applications"])
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
 # Helper to extract and validate access token from credentials
-def get_access_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+def get_access_token_payload(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
     return require_token_type(credentials.credentials, "access")
 
 
@@ -53,47 +63,33 @@ def create_application(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     get_access_token_payload(credentials)
-    # All your initial checks are correct
     app_repo = ApplicationRepository(db)
     cycle_repo = ApplicationCycleRepository(db)
     active_cycle = cycle_repo.get_active()
     if not active_cycle:
-        raise HTTPException(
-            status_code=400, detail="No active application cycle found."
-        )
+        raise_validation_error("No active application cycle found.")
 
     existing_application = app_repo.get_by_applicant_id(current_user.id)
     if existing_application:
-        raise HTTPException(
-            status_code=400, detail="You have already submitted an application."
-        )
+        raise_conflict("You have already submitted an application.")
 
     if not resume.filename.endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Resume must be a PDF file.")
+        raise_validation_error("Resume must be a PDF file.")
 
     temp_file_path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4()}_{resume.filename}")
 
     try:
-        # Save the uploaded file stream to a stable temporary file
         with open(temp_file_path, "wb") as buffer:
             shutil.copyfileobj(resume.file, buffer)
-
-        # Upload the stable local file to Cloudinary
         result = cloudinary.uploader.upload(
             temp_file_path,
             resource_type="raw",
             folder="resumes",
         )
         resume_url = result["secure_url"]
-
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"File upload process failed: {str(e)}"
-        )
-
+        raise_internal_error(f"File upload process failed: {str(e)}")
     finally:
-        # FastAPI/Starlette will manage its lifecycle.
-        # We only need to clean up the temporary file we created ourselves.
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
@@ -143,20 +139,21 @@ def create_application(
     dependencies=[Depends(bearer_scheme)],
 )
 def get_my_status(
-    current_user=Depends(applicant_required), db: Session = Depends(get_db), credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+    current_user=Depends(applicant_required),
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     get_access_token_payload(credentials)
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_applicant_id(current_user.id)
     if not app:
-        raise HTTPException(status_code=404, detail="No application found.")
+        raise_not_found("No application found.", "application")
     response_data = ApplicationStatusResponse(
         id=str(app.id),
         status=app.status,
         school=app.school,
         submitted_at=app.submitted_at,
     )
-
     return APIResponse(
         data=response_data,
         message="Application status fetched successfully",
@@ -177,20 +174,14 @@ def get_application(
 ):
     get_access_token_payload(credentials)
     app_repo = ApplicationRepository(db)
-
     try:
         app = app_repo.get_by_id(uuid.UUID(application_id))
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid application ID.")
-
+        raise_validation_error("Invalid application ID.")
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
-
+        raise_not_found("Application not found.", "application")
     if app.applicant_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not authorized to access this application."
-        )
-
+        raise_forbidden("You are not authorized to access this application.")
     response_data = ApplicationResponse(
         id=str(app.id),
         status=app.status,
@@ -204,7 +195,6 @@ def get_application(
         submitted_at=app.submitted_at,
         updated_at=app.updated_at,
     )
-
     return APIResponse(
         data=response_data,
         message="Application fetched successfully",
@@ -227,21 +217,12 @@ def update_application(
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
-
+        raise_not_found("Application not found.", "application")
     if app.applicant_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not authorized to update this application."
-        )
-
+        raise_forbidden("You are not authorized to update this application.")
     if app.status != "in_progress":
-        raise HTTPException(
-            status_code=400,
-            detail="You can only update your application before it is submitted.",
-        )
-
+        raise_conflict("You can only update your application before it is submitted.")
     app_repo.update(app)
-
     response_data = ApplicationResponse(
         id=str(app.id),
         status=app.status,
@@ -255,7 +236,6 @@ def update_application(
         submitted_at=app.submitted_at,
         updated_at=app.updated_at,
     )
-
     return APIResponse(
         data=response_data,
         message="Application updated successfully",
@@ -278,21 +258,12 @@ def delete_application(
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
-
+        raise_not_found("Application not found.", "application")
     if app.applicant_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not authorized to delete this application."
-        )
-
+        raise_forbidden("You are not authorized to delete this application.")
     if app.status != "in_progress":
-        raise HTTPException(
-            status_code=400,
-            detail="You can only delete your application before it is submitted.",
-        )
-
+        raise_conflict("You can only delete your application before it is submitted.")
     app_repo.delete(app.id)
-
     return APIResponse(
         data=None,
         message="Application deleted successfully",
@@ -315,22 +286,14 @@ def submit_application(
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(uuid.UUID(application_id))
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
-
+        raise_not_found("Application not found.", "application")
     if app.applicant_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="You are not authorized to submit this application."
-        )
-
+        raise_forbidden("You are not authorized to submit this application.")
     if app.status != "in_progress":
-        raise HTTPException(
-            status_code=400, detail="You have already submitted your application."
-        )
-
+        raise_conflict("You have already submitted your application.")
     app.status = "submitted"
     app.submitted_at = datetime.utcnow()
     app_repo.update(app)
-
     response_data = ApplicationResponse(
         id=str(app.id),
         status=app.status,
@@ -344,7 +307,6 @@ def submit_application(
         submitted_at=app.submitted_at,
         updated_at=app.updated_at,
     )
-
     return APIResponse(
         data=response_data,
         message="Application submitted successfully",

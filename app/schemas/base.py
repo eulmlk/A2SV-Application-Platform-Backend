@@ -17,3 +17,14 @@ class APIResponse(BaseModel, Generic[T]):
     success: bool = True
     data: Optional[T] = None
     message: Optional[str] = None
+
+
+class ErrorResponse(BaseModel):
+    """
+    A standardized error response wrapper.
+    """
+    success: bool = False
+    data: Optional[dict] = None
+    message: str
+    error_code: Optional[str] = None
+    details: Optional[dict] = None

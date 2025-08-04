@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -54,3 +54,10 @@ class ReviewUpdateRequest(BaseModel):
     technical_interview_score: Optional[int]
     behavioral_interview_score: Optional[int]
     interview_notes: Optional[str]
+
+
+class ReviewListResponse(BaseModel):
+    reviews: List[AssignedApplicationSummary]
+    total_count: int
+    page: int
+    limit: int

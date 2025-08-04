@@ -11,8 +11,11 @@ import uuid
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token/")
 
+
 # Dependency to get current user from JWT token
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -32,6 +35,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+
 # Applicant RBAC guard
 def applicant_required(current_user: User = Depends(get_current_user)):
     # Assume role_id 1 is Applicant, or check by role name if needed
@@ -39,16 +43,25 @@ def applicant_required(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Applicant access required.")
     return current_user
 
+
 def admin_required(current_user: User = Depends(get_current_user)):
     # Check by role_id or fetch role name if needed
     if current_user.role_id != 4:  # Adjust if your admin role_id is different
         raise HTTPException(status_code=403, detail="Admin access required.")
     return current_user
 
+
 def reviewer_required(current_user: User = Depends(get_current_user)):
-    if current_user.role_id != 2:  # Adjust if reviewer role_id is different
-        raise HTTPException(status_code=403, detail="Reviewer access required.")
-    return current_user 
+    if (
+        current_user.role_id != 2
+        and current_user.role_id != 4
+        and current_user.role_id != 3
+    ):
+        raise HTTPException(
+            status_code=403, detail="Reviewer, Manager or Admin access required."
+        )
+    return current_user
+
 
 def manager_required(current_user: User = Depends(get_current_user)):
     if current_user.role_id != 3 and current_user.role_id != 4:

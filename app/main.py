@@ -10,9 +10,18 @@ from app.api.cycles import router as cycles_router
 from app.api.manager import router as manager_router
 from app.api.profile import router as profile_router
 from app.api.reviews import router as reviews_router
+from app.core.error_handlers import register_exception_handlers
+
 import os
 
-app = FastAPI()
+app = FastAPI(
+    title="AppPlatform API",
+    description="Application Platform API",
+    version="1.0.0",
+)
+
+# Register exception handlers
+register_exception_handlers(app)
 
 # CORS for development
 app.add_middleware(
@@ -30,6 +39,7 @@ app.mount("/static", StaticFiles(directory="uploads"), name="static")
 # Define HTTP Bearer security
 security = HTTPBearer()
 
+
 # Customize Swagger UI to use Bearer token
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
@@ -37,6 +47,7 @@ async def custom_swagger_ui_html():
         openapi_url="/openapi.json",
         swagger_ui_parameters={"defaultModelsExpandDepth": -1},
     )
+
 
 # Include routers
 app.include_router(auth_router)

@@ -11,7 +11,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 router = APIRouter(
     prefix="/profile",
-    tags=["Profile"],
+    tags=["profile"],
     dependencies=[Depends(bearer_scheme)]  # Lock endpoints in Swagger UI
 )
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import (
@@ -7,6 +7,8 @@ from app.repositories.sqlalchemy_impl import (
     UserRepository,
 )
 from app.schemas.base import APIResponse
+from app.schemas.review import ReviewListResponse
+from app.core.utils import raise_not_found, raise_forbidden, raise_validation_error
 import uuid
 from app.core.security import require_token_type
 from fastapi.security import HTTPAuthorizationCredentials
@@ -30,16 +32,28 @@ def get_access_token_payload(
     return require_token_type(credentials.credentials, "access")
 
 
-@router.get("/assigned/", response_model=APIResponse[list[AssignedApplicationSummary]])
+@router.get("/assigned/", response_model=APIResponse[ReviewListResponse])
 def list_assigned_applications(
+    page: int = 1,
+    limit: int = 10,
     current_user=Depends(reviewer_required),
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
     get_access_token_payload(credentials)
+
+    # Validate pagination parameters
+    if page < 1:
+        raise_validation_error("Page must be greater than 0")
+    if limit < 1 or limit > 100:
+        raise_validation_error("Limit must be between 1 and 100")
+
+    # Calculate offset
+    offset = (page - 1) * limit
+
     app_repo = ApplicationRepository(db)
     user_repo = UserRepository(db)
-    apps = app_repo.list_by_reviewer(current_user.id)
+    apps = app_repo.list_by_reviewer(current_user.id, offset=offset, limit=limit)
     summaries = []
     for app in apps:
         applicant = user_repo.get_by_id(app.applicant_id)
@@ -51,7 +65,13 @@ def list_assigned_applications(
                 submission_date=app.submitted_at,
             )
         )
-    return APIResponse(data=summaries, message="Assigned applications retrieved.")
+    response_data = ReviewListResponse(
+        reviews=summaries,
+        total_count=len(summaries),
+        page=page,
+        limit=limit,
+    )
+    return APIResponse(data=response_data, message="Assigned applications retrieved.")
 
 
 @router.get(
@@ -70,11 +90,11 @@ def get_application_review(
     try:
         app = app_repo.get_by_id(uuid.UUID(application_id))
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid application ID.")
+        raise_validation_error("Invalid application ID format")
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
+        raise_not_found("Application not found", "application")
     if app.assigned_reviewer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not assigned to this application.")
+        raise_forbidden("Not assigned to this application")
     applicant = user_repo.get_by_id(app.applicant_id)
 
     # Create the FullApplication object with data from the 'app' object
@@ -135,11 +155,11 @@ def update_review(
     try:
         app = app_repo.get_by_id(uuid.UUID(application_id))
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid application ID.")
+        raise_validation_error("Invalid application ID format")
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found.")
+        raise_not_found("Application not found", "application")
     if app.assigned_reviewer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not assigned to this application.")
+        raise_forbidden("Not assigned to this application")
     review = review_repo.create_or_update(
         app.id, current_user.id, data.dict(exclude_unset=True)
     )

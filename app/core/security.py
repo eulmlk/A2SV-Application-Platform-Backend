@@ -2,20 +2,17 @@ from passlib.context import CryptContext
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from app.core.config import settings
-from fastapi import HTTPException
+from app.core.utils import raise_unauthorized
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 # Password hashing
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-
 # Password verification
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
-
 
 # JWT token creation
 def create_access_token(data: dict, expires_delta: timedelta = None):
@@ -41,7 +38,6 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None):
     )
     return encoded_jwt
 
-
 # JWT token decoding
 def decode_token(token: str):
     try:
@@ -56,8 +52,5 @@ def decode_token(token: str):
 def require_token_type(token: str, expected_type: str):
     payload = decode_token(token)
     if payload is None or payload.get("type") != expected_type:
-        raise HTTPException(
-            status_code=401,
-            detail=f"Invalid or expired {expected_type} token.",
-        )
+        raise_unauthorized(f"Invalid or expired {expected_type} token.")
     return payload
