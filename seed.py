@@ -6,34 +6,50 @@ from app.core.security import hash_password
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, text
 from app.core.config import settings
+from app.models.application import Application
+from app.models.review import Review
+from app.models.application_cycle import ApplicationCycle
 
 engine = create_engine(settings.DATABASE_URL)
 Base.metadata.create_all(engine)
+
 
 def rename_degree_to_student_id():
     """Rename the 'degree' column to 'student_id' in the applications table"""
     db = Session(bind=engine)
     try:
         # Check if the degree column exists
-        result = db.execute(text("""
+        result = db.execute(
+            text(
+                """
             SELECT column_name 
             FROM information_schema.columns 
             WHERE table_name = 'applications' AND column_name = 'degree'
-        """))
-        
+        """
+            )
+        )
+
         if result.fetchone():
             # Rename the column
-            db.execute(text("ALTER TABLE applications RENAME COLUMN degree TO student_id"))
+            db.execute(
+                text("ALTER TABLE applications RENAME COLUMN degree TO student_id")
+            )
             db.commit()
-            print("Successfully renamed 'degree' column to 'student_id' in applications table")
+            print(
+                "Successfully renamed 'degree' column to 'student_id' in applications table"
+            )
         else:
             # Check if student_id column already exists
-            result = db.execute(text("""
+            result = db.execute(
+                text(
+                    """
                 SELECT column_name 
                 FROM information_schema.columns 
                 WHERE table_name = 'applications' AND column_name = 'student_id'
-            """))
-            
+            """
+                )
+            )
+
             if result.fetchone():
                 print("Column 'student_id' already exists in applications table")
             else:
@@ -43,6 +59,7 @@ def rename_degree_to_student_id():
         db.rollback()
     finally:
         db.close()
+
 
 def seed_roles_and_admin():
     db = Session(bind=engine)
@@ -68,7 +85,7 @@ def seed_roles_and_admin():
             email=admin_email,
             password=hash_password(admin_password),
             full_name="Admin User",
-            role_id=admin_role_id
+            role_id=admin_role_id,
         )
         db.add(admin_user)
         db.commit()
@@ -76,6 +93,7 @@ def seed_roles_and_admin():
     else:
         print(f"Admin user already exists: {admin_email}")
     db.close()
+
 
 if __name__ == "__main__":
     rename_degree_to_student_id()
