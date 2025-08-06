@@ -84,8 +84,8 @@ def get_user_by_id(
 
 @router.post("/login/", response_model=APIResponse[TokenResponse])
 def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
-    email = data.get("email")
-    password = data.get("password")
+    email = data.email
+    password = data.password
     if not email or not password:
         raise_validation_error("Email and password required.")
     user_repo = UserRepository(db)
