@@ -33,6 +33,7 @@ from app.core.utils import (
     raise_validation_error,
     raise_internal_error,
 )
+from app.schemas.auth import LoginRequest
 import uuid
 from datetime import datetime, timezone
 from fastapi.security import HTTPAuthorizationCredentials
@@ -82,7 +83,7 @@ def get_user_by_id(
 
 
 @router.post("/login/", response_model=APIResponse[TokenResponse])
-def admin_login(data: dict, db: Session = Depends(get_db)):
+def admin_login(data: LoginRequest, db: Session = Depends(get_db)):
     email = data.get("email")
     password = data.get("password")
     if not email or not password:

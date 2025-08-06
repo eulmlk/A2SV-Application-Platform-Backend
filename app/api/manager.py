@@ -138,6 +138,8 @@ def get_application(
         status=application.status,
         school=application.school,
         student_id=application.student_id,
+        country=application.country,
+        degree=application.degree,
         leetcode_handle=application.leetcode_handle,
         codeforces_handle=application.codeforces_handle,
         essay_why_a2sv=application.essay_why_a2sv,

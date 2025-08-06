@@ -52,6 +52,8 @@ def get_access_token_payload(
 def create_application(
     school: str = Form(...),
     student_id: str = Form(...),
+    country: str = Form(...),
+    degree: str = Form(...),
     leetcode_handle: str = Form(...),
     codeforces_handle: str = Form(...),
     essay_why_a2sv: str = Form(...),
@@ -99,6 +101,8 @@ def create_application(
         status="in_progress",
         school=school,
         student_id=student_id,
+        country=country,
+        degree=degree,
         leetcode_handle=leetcode_handle,
         codeforces_handle=codeforces_handle,
         essay_why_a2sv=essay_why_a2sv,
@@ -116,6 +120,8 @@ def create_application(
         status=app.status,
         school=app.school,
         student_id=app.student_id,
+        country=app.country,
+        degree=app.degree,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -151,6 +157,7 @@ def get_my_status(
         id=str(app.id),
         status=app.status,
         school=app.school,
+        country=app.country,
         submitted_at=app.submitted_at,
     )
     return APIResponse(
@@ -186,6 +193,8 @@ def get_application(
         status=app.status,
         school=app.school,
         student_id=app.student_id,
+        country=app.country,
+        degree=app.degree,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -213,6 +222,7 @@ def update_application(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     school: str = Form(None),
     student_id: str = Form(None),
+    country: str = Form(None),
     leetcode_handle: str = Form(None),
     codeforces_handle: str = Form(None),
     essay_why_a2sv: str = Form(None),
@@ -233,6 +243,8 @@ def update_application(
         app.school = school
     if student_id is not None:
         app.student_id = student_id
+    if country is not None:
+        app.country = country
     if leetcode_handle is not None:
         app.leetcode_handle = leetcode_handle
     if codeforces_handle is not None:
@@ -268,6 +280,8 @@ def update_application(
         status=app.status,
         school=app.school,
         student_id=app.student_id,
+        country=app.country,
+        degree=app.degree,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,
@@ -340,6 +354,8 @@ def submit_application(
         status=app.status,
         school=app.school,
         student_id=app.student_id,
+        country=app.country,
+        degree=app.degree,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
         essay_why_a2sv=app.essay_why_a2sv,

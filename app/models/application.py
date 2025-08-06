@@ -12,6 +12,8 @@ class Application(Base):
     status = Column(String(50), nullable=False, default="in_progress")
     school = Column(String(255), nullable=False)
     student_id = Column(String(255), nullable=False)
+    country = Column(String(255), nullable=False)
+    degree = Column(String(255), nullable=False)
     leetcode_handle = Column(String(100), nullable=False)
     codeforces_handle = Column(String(100), nullable=False)
     essay_why_a2sv = Column(Text, nullable=False)

@@ -19,6 +19,7 @@ class User:
         role_id: int,
         created_at: datetime,
         updated_at: datetime,
+        profile_picture_url: str = None,
     ):
         self.id = id
         self.email = email
@@ -27,6 +28,7 @@ class User:
         self.role_id = role_id
         self.created_at = created_at
         self.updated_at = updated_at
+        self.profile_picture_url = profile_picture_url
 
 
 class ApplicationCycle:
@@ -65,6 +67,8 @@ class Application:
         decision_notes: Optional[str],
         updated_at: datetime,
         submitted_at: Optional[datetime],
+        country: str,
+        degree: str,
     ):
         self.id = id
         self.applicant_id = applicant_id
@@ -81,6 +85,8 @@ class Application:
         self.decision_notes = decision_notes
         self.submitted_at = submitted_at
         self.updated_at = updated_at
+        self.country = country
+        self.degree = degree
 
 
 class Review:

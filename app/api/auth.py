@@ -86,12 +86,12 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     user_repo = UserRepository(db)
     role_repo = RoleRepository(db)
     user = user_repo.get_by_email(data.email)
-    role = role_repo.get_by_id(user.role_id)
 
     if not user or not verify_password(data.password, user.password):
         raise_unauthorized("Incorrect email or password.")
 
     # Create both access and refresh tokens
+    role = role_repo.get_by_id(user.role_id)
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
 

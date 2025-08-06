@@ -38,11 +38,13 @@ class ProfileResponse(BaseModel):
     full_name: str
     email: EmailStr
     role: str
+    profile_picture_url: str | None = None
 
 
 class ProfileUpdateRequest(BaseModel):
     full_name: str | None = None
     email: EmailStr | None = None
+    profile_picture_url: str | None = None
 
 
 class ChangePasswordRequest(BaseModel):

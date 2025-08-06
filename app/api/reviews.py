@@ -103,6 +103,8 @@ def get_application_review(
         applicant_name=applicant.full_name if applicant else "",
         status=app.status,
         school=app.school,
+        student_id=app.student_id,
+        country=app.country,
         degree=app.degree,
         leetcode_handle=app.leetcode_handle,
         codeforces_handle=app.codeforces_handle,
