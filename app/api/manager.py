@@ -19,6 +19,11 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.schemas.base import APIResponse
 from app.api.deps import manager_required
 import logging
+from app.repositories.sqlalchemy_impl import ReviewRepository
+from app.schemas.review import ReviewDetail
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
 
 router = APIRouter(
     prefix="/manager/applications",
@@ -161,15 +166,25 @@ def list_applications(
     return APIResponse(data=response_data, message="Applications fetched successfully")
 
 
-# GET /manager/applications/{application_id}/
-from app.repositories.sqlalchemy_impl import ReviewRepository
-from app.schemas.review import ReviewDetail
-from pydantic import BaseModel
-from typing import Optional
+class ApplicationResponseWithName(BaseModel):
+    id: UUID
+    status: str
+    school: str
+    student_id: str
+    country: str
+    degree: str
+    leetcode_handle: str
+    codeforces_handle: str
+    essay_why_a2sv: str
+    essay_about_you: str
+    resume_url: str
+    submitted_at: Optional[datetime] = None
+    updated_at: datetime
+    applicant_name: str
 
 
 class ApplicationWithReviewResponse(BaseModel):
-    application: ApplicationResponse
+    application: ApplicationResponseWithName
     review: Optional[ReviewDetail] = None
 
 
@@ -183,9 +198,14 @@ def get_application(
 ):
     app_repo = ApplicationRepository(db)
     review_repo = ReviewRepository(db)
+    user_repo = UserRepository(db)
     application = app_repo.get_by_id(application_id)
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
+
+    applicant = user_repo.get_by_id(application.applicant_id)
+    if not applicant:
+        raise HTTPException(status_code=404, detail="Applicant not found")
 
     # Try to get the review for this application
     review = review_repo.get_by_application_id(application_id)
@@ -207,7 +227,7 @@ def get_application(
         )
 
     response_data = ApplicationWithReviewResponse(
-        application=ApplicationResponse(
+        application=ApplicationResponseWithName(
             id=str(application.id),
             status=application.status,
             school=application.school,
@@ -221,6 +241,7 @@ def get_application(
             resume_url=application.resume_url,
             submitted_at=application.submitted_at,
             updated_at=application.updated_at,
+            applicant_name=applicant.full_name,
         ),
         review=review_detail,
     )
