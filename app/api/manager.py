@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 from app.domain.entities import User
 from sqlalchemy.orm import Session
+from app.models.user import User as UserModel
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import (
     ApplicationRepository,
@@ -46,6 +47,47 @@ class ApplicationSummary(BaseModel):
 class ApplicationListResponse(BaseModel):
     applications: List[ApplicationSummary]
     total_count: int
+    page: int
+    limit: int
+
+
+class ReviewerSummary(BaseModel):
+    id: UUID
+    full_name: str
+    email: str
+
+
+class ReviewerListResponse(BaseModel):
+    reviewers: List[ReviewerSummary]
+    total_count: int
+
+
+# GET /manager/applications/available-reviewers/
+@router.get("/available-reviewers/", response_model=APIResponse[ReviewerListResponse])
+def get_available_reviewers(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(manager_required),
+    db: Session = Depends(get_db),
+):
+    reviewers = (
+        db.query(UserModel)
+        .filter(UserModel.role_id == 2)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    total_count = db.query(UserModel).filter(UserModel.role_id == 2).count()
+    reviewer_list = [
+        ReviewerSummary(id=r.id, full_name=r.full_name, email=r.email)
+        for r in reviewers
+    ]
+    response_data = ReviewerListResponse(
+        reviewers=reviewer_list, total_count=total_count
+    )
+    return APIResponse(
+        data=response_data, message="Available reviewers fetched successfully."
+    )
     page: int
     limit: int
 

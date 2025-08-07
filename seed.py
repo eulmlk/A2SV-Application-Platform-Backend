@@ -6,9 +6,6 @@ from app.core.security import hash_password
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, text
 from app.core.config import settings
-from app.models.application import Application
-from app.models.review import Review
-from app.models.application_cycle import ApplicationCycle
 
 engine = create_engine(settings.DATABASE_URL)
 Base.metadata.create_all(engine)
@@ -30,7 +27,9 @@ def add_profile_picture_column():
         if not result.fetchone():
             print("Adding 'profile_picture_url' column to users table...")
             db.execute(
-                text("ALTER TABLE users ADD COLUMN profile_picture_url VARCHAR(512) NULL")
+                text(
+                    "ALTER TABLE users ADD COLUMN profile_picture_url VARCHAR(512) NULL"
+                )
             )
             db.commit()
             print("Successfully added 'profile_picture_url' column.")
@@ -58,10 +57,14 @@ def add_country_column():
             )
         )
         if not result.fetchone():
-            print("Column 'country' not found. Creating, populating, and setting NOT NULL...")
+            print(
+                "Column 'country' not found. Creating, populating, and setting NOT NULL..."
+            )
             # Atomically add the column, populate existing rows, and set NOT NULL
             db.execute(
-                text("ALTER TABLE applications ADD COLUMN country VARCHAR(255) NOT NULL DEFAULT 'Ethiopia'")
+                text(
+                    "ALTER TABLE applications ADD COLUMN country VARCHAR(255) NOT NULL DEFAULT 'Ethiopia'"
+                )
             )
             # Remove the default so it doesn't apply to new records
             db.execute(
@@ -72,13 +75,17 @@ def add_country_column():
             print("Column 'country' exists. Checking for and populating NULL values...")
             # If the column exists, it might have NULLs. Update them.
             db.execute(
-                text("UPDATE applications SET country = 'Ethiopia' WHERE country IS NULL")
+                text(
+                    "UPDATE applications SET country = 'Ethiopia' WHERE country IS NULL"
+                )
             )
             # Ensure the NOT NULL constraint is in place for future inserts
             db.execute(
                 text("ALTER TABLE applications ALTER COLUMN country SET NOT NULL")
             )
-            print("Ensured all existing rows in 'country' column are populated and column is NOT NULL.")
+            print(
+                "Ensured all existing rows in 'country' column are populated and column is NOT NULL."
+            )
 
         db.commit()
     except Exception as e:
@@ -103,10 +110,14 @@ def add_degree_column():
             )
         )
         if not result.fetchone():
-            print("Column 'degree' not found. Creating, populating, and setting NOT NULL...")
+            print(
+                "Column 'degree' not found. Creating, populating, and setting NOT NULL..."
+            )
             # Atomically add the column, populate existing rows, and set NOT NULL
             db.execute(
-                text("ALTER TABLE applications ADD COLUMN degree VARCHAR(255) NOT NULL DEFAULT 'B.Sc. in Software Engineering'")
+                text(
+                    "ALTER TABLE applications ADD COLUMN degree VARCHAR(255) NOT NULL DEFAULT 'B.Sc. in Software Engineering'"
+                )
             )
             # Remove the default so it doesn't apply to new records
             db.execute(
@@ -117,13 +128,17 @@ def add_degree_column():
             print("Column 'degree' exists. Checking for and populating NULL values...")
             # If the column exists, it might have NULLs. Update them.
             db.execute(
-                text("UPDATE applications SET degree = 'B.Sc. in Software Engineering' WHERE degree IS NULL")
+                text(
+                    "UPDATE applications SET degree = 'B.Sc. in Software Engineering' WHERE degree IS NULL"
+                )
             )
             # Ensure the NOT NULL constraint is in place for future inserts
             db.execute(
                 text("ALTER TABLE applications ALTER COLUMN degree SET NOT NULL")
             )
-            print("Ensured all existing rows in 'degree' column are populated and column is NOT NULL.")
+            print(
+                "Ensured all existing rows in 'degree' column are populated and column is NOT NULL."
+            )
 
         db.commit()
     except Exception as e:
