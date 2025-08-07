@@ -88,8 +88,6 @@ def get_available_reviewers(
     return APIResponse(
         data=response_data, message="Available reviewers fetched successfully."
     )
-    page: int
-    limit: int
 
 
 # Request/response models for PATCH endpoints
@@ -164,31 +162,67 @@ def list_applications(
 
 
 # GET /manager/applications/{application_id}/
-@router.get("/{application_id}/", response_model=APIResponse[ApplicationResponse])
+from app.repositories.sqlalchemy_impl import ReviewRepository
+from app.schemas.review import ReviewDetail
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ApplicationWithReviewResponse(BaseModel):
+    application: ApplicationResponse
+    review: Optional[ReviewDetail] = None
+
+
+@router.get(
+    "/{application_id}/", response_model=APIResponse[ApplicationWithReviewResponse]
+)
 def get_application(
     application_id: UUID,
     current_user: User = Depends(manager_required),
     db: Session = Depends(get_db),
 ):
     app_repo = ApplicationRepository(db)
+    review_repo = ReviewRepository(db)
     application = app_repo.get_by_id(application_id)
     if not application:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    response_data = ApplicationResponse(
-        id=str(application.id),
-        status=application.status,
-        school=application.school,
-        student_id=application.student_id,
-        country=application.country,
-        degree=application.degree,
-        leetcode_handle=application.leetcode_handle,
-        codeforces_handle=application.codeforces_handle,
-        essay_why_a2sv=application.essay_why_a2sv,
-        essay_about_you=application.essay_about_you,
-        resume_url=application.resume_url,
-        submitted_at=application.submitted_at,
-        updated_at=application.updated_at,
+    # Try to get the review for this application
+    review = review_repo.get_by_application_id(application_id)
+    review_detail = None
+    if review:
+        review_detail = ReviewDetail(
+            id=str(review.id),
+            application_id=str(review.application_id),
+            reviewer_id=str(review.reviewer_id) if review.reviewer_id else None,
+            activity_check_notes=review.activity_check_notes,
+            resume_score=review.resume_score,
+            essay_why_a2sv_score=review.essay_why_a2sv_score,
+            essay_about_you_score=review.essay_about_you_score,
+            technical_interview_score=review.technical_interview_score,
+            behavioral_interview_score=review.behavioral_interview_score,
+            interview_notes=review.interview_notes,
+            created_at=review.created_at,
+            updated_at=review.updated_at,
+        )
+
+    response_data = ApplicationWithReviewResponse(
+        application=ApplicationResponse(
+            id=str(application.id),
+            status=application.status,
+            school=application.school,
+            student_id=application.student_id,
+            country=application.country,
+            degree=application.degree,
+            leetcode_handle=application.leetcode_handle,
+            codeforces_handle=application.codeforces_handle,
+            essay_why_a2sv=application.essay_why_a2sv,
+            essay_about_you=application.essay_about_you,
+            resume_url=application.resume_url,
+            submitted_at=application.submitted_at,
+            updated_at=application.updated_at,
+        ),
+        review=review_detail,
     )
     return APIResponse(data=response_data, message="Application fetched successfully")
 

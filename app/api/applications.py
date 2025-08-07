@@ -158,6 +158,7 @@ def get_my_status(
         status=app.status,
         school=app.school,
         country=app.country,
+        degree=app.degree,
         submitted_at=app.submitted_at,
     )
     return APIResponse(
