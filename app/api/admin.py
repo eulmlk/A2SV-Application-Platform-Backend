@@ -290,12 +290,8 @@ def update_user(
             raise_not_found("Role not found.", "role")
         update_data["role_id"] = role.id
 
-    # --- FIX STARTS HERE ---
-    # Check if the is_active field is present in the request
     if data.is_active is not None:
-        # Convert the boolean from the request to an integer (1 or 0) for the database
         update_data["is_active"] = 1 if data.is_active else 0
-    # --- FIX ENDS HERE ---
 
     updated = user_repo.update(user_uuid, **update_data)
     if not updated:
@@ -455,3 +451,24 @@ def delete_cycle(
     if not deleted:
         raise_not_found("Cycle not found.", "cycle")
     return APIResponse(message="Cycle deleted successfully.")
+
+
+@router.patch(
+    "/cycles/{cycle_id}/deactivate/",
+    response_model=APIResponse[AdminCycleResponse],
+    dependencies=[Depends(bearer_scheme)],
+)
+def deactivate_cycle(
+    cycle_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    current_user=Depends(admin_required),
+    db: Session = Depends(get_db),
+):
+    get_access_token_payload(credentials)
+    cycle_repo = ApplicationCycleRepository(db)
+    deactivated = cycle_repo.deactivate(cycle_id)
+    if not deactivated:
+        raise_not_found("Cycle not found.", "cycle")
+    return APIResponse(
+        data=deactivated, message=f"Cycle {deactivated.name} is now inactive."
+    )

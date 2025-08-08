@@ -50,3 +50,13 @@ class ProfileUpdateRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    callback_url: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str

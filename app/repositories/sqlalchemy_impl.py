@@ -516,6 +516,27 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             description=cycle.description,
         )
 
+    def deactivate(self, cycle_id: int):
+        cycle = (
+            self.db.query(ApplicationCycleModel)
+            .filter(ApplicationCycleModel.id == cycle_id)
+            .first()
+        )
+        if not cycle:
+            return None
+        cycle.is_active = False
+        self.db.commit()
+        self.db.refresh(cycle)
+        return ApplicationCycle(
+            id=cycle.id,
+            name=cycle.name,
+            start_date=cycle.start_date,
+            end_date=cycle.end_date,
+            is_active=cycle.is_active,
+            created_at=cycle.created_at,
+            description=cycle.description,
+        )
+
     def list_all(self, offset: int = 0, limit: int = None):
         query = self.db.query(ApplicationCycleModel)
         if limit is not None:
