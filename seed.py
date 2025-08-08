@@ -1,4 +1,5 @@
 import os
+import uuid
 from app.core.database import Base
 from app.models.role import Role
 from app.models.user import User
@@ -42,6 +43,38 @@ def add_description_column_to_cycle():
         db.close()
 
 
+def add_is_active_column_to_users():
+    """Add the 'is_active' column to the users table if it does not exist."""
+    db = Session(bind=engine)
+    try:
+        result = db.execute(
+            text(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'is_active'
+                """
+            )
+        )
+        if not result.fetchone():
+            print("Adding 'is_active' column to users table...")
+            # Add the column with a default value of 1 (for active)
+            db.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
+                )
+            )
+            db.commit()
+            print("Successfully added 'is_active' column.")
+        else:
+            print("Column 'is_active' already exists in users table.")
+    except Exception as e:
+        print(f"Error adding 'is_active' column: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 def seed_roles_and_admin():
     db = Session(bind=engine)
     try:
@@ -70,6 +103,7 @@ def seed_roles_and_admin():
                 password=hash_password(admin_password),
                 full_name="Admin User",
                 role_id=admin_role_id,
+                is_active=1,  # Explicitly set as active
             )
             db.add(admin_user)
             db.commit()
@@ -85,5 +119,6 @@ def seed_roles_and_admin():
 
 if __name__ == "__main__":
     add_description_column_to_cycle()
+    add_is_active_column_to_users()
     seed_roles_and_admin()
     print("Seeding script finished.")

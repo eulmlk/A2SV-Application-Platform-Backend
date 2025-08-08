@@ -26,6 +26,7 @@ class UserRepository(IUserRepository):
                 role_id=user.role_id,
                 created_at=user.created_at,
                 updated_at=user.updated_at,
+                is_active=user.is_active == 1,  # Convert to boolean
             )
         return None
 
@@ -41,6 +42,7 @@ class UserRepository(IUserRepository):
                 role_id=user.role_id,
                 created_at=user.created_at,
                 updated_at=user.updated_at,
+                is_active=user.is_active == 1,  # Convert to boolean
             )
         return None
 
@@ -52,6 +54,7 @@ class UserRepository(IUserRepository):
             full_name=user.full_name,
             profile_picture_url=user.profile_picture_url,
             role_id=user.role_id,
+            is_active=1 if user.is_active else 0,  # Convert boolean to integer
         )
         self.db.add(db_user)
         self.db.commit()
@@ -65,6 +68,7 @@ class UserRepository(IUserRepository):
             role_id=db_user.role_id,
             created_at=db_user.created_at,
             updated_at=db_user.updated_at,
+            is_active=db_user.is_active == 1,  # Convert to boolean
         )
 
     def list_all(self, offset: int = 0, limit: int = None):
@@ -82,6 +86,7 @@ class UserRepository(IUserRepository):
                 role_id=u.role_id,
                 created_at=u.created_at,
                 updated_at=u.updated_at,
+                is_active=u.is_active == 1,  # Convert to boolean
             )
             for u in users
         ]
@@ -107,6 +112,7 @@ class UserRepository(IUserRepository):
             role_id=user.role_id,
             created_at=user.created_at,
             updated_at=user.updated_at,
+            is_active=user.is_active == 1,  # Convert to boolean
         )
 
     def delete(self, user_id: uuid.UUID):

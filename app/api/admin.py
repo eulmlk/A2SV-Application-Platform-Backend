@@ -76,7 +76,11 @@ def get_user_by_id(
     role_name = role.name if role else ""
 
     response_data = AdminUserResponse(
-        id=str(user.id), full_name=user.full_name, email=user.email, role=role_name
+        id=str(user.id),
+        full_name=user.full_name,
+        email=user.email,
+        role=role_name,
+        is_active=user.is_active,
     )
 
     return APIResponse(data=response_data, message="User retrieved successfully.")
@@ -138,7 +142,10 @@ def create_user(
         full_name=created.full_name,
         email=created.email,
         role=role.name,
+        profile_picture=None,
+        is_active=True,
     )
+
     return APIResponse(data=response_data, message="User created successfully.")
 
 
@@ -162,15 +169,18 @@ def list_users(
     offset = (page - 1) * limit
     users = user_repo.list_all(offset=offset, limit=limit)
     roles = {r.id: r.name for r in role_repo.list_all()}
+
     response_items = [
         AdminUserResponse(
             id=str(u.id),
             full_name=u.full_name,
             email=u.email,
             role=roles.get(u.role_id, ""),
+            is_active=u.is_active,
         )
         for u in users
     ]
+
     # Get total count for pagination
     total_count = user_repo.count_all()
     response_data = AdminListUsersResponse(
@@ -179,6 +189,7 @@ def list_users(
         page=page,
         limit=limit,
     )
+
     return APIResponse(data=response_data, message="Users retrieved successfully.")
 
 
@@ -201,6 +212,7 @@ def update_user(
         user_uuid = uuid.UUID(user_id)
     except ValueError:
         raise_validation_error("Invalid user ID format.")
+
     update_data = {}
     if data.full_name is not None:
         update_data["full_name"] = data.full_name
@@ -213,18 +225,30 @@ def update_user(
         if not role:
             raise_not_found("Role not found.", "role")
         update_data["role_id"] = role.id
+
+    # --- FIX STARTS HERE ---
+    # Check if the is_active field is present in the request
+    if data.is_active is not None:
+        # Convert the boolean from the request to an integer (1 or 0) for the database
+        update_data["is_active"] = 1 if data.is_active else 0
+    # --- FIX ENDS HERE ---
+
     updated = user_repo.update(user_uuid, **update_data)
     if not updated:
         raise_not_found("User not found.", "user")
+
     role = role_repo.get_by_id(updated.role_id) if updated.role_id else None
     role_name = role.name if role else ""
+
     response_data = AdminUserResponse(
         id=str(updated.id),
         full_name=updated.full_name,
         email=updated.email,
         role=role_name,
-        profile_picture=updated.profile_picture,
+        profile_picture=updated.profile_picture_url,
+        is_active=(updated.is_active == 1 if updated.is_active is not None else False),
     )
+
     return APIResponse(data=response_data, message="User updated successfully.")
 
 

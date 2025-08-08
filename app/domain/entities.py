@@ -20,6 +20,7 @@ class User:
         created_at: datetime,
         updated_at: datetime,
         profile_picture_url: str = None,
+        is_active: bool = True,
     ):
         self.id = id
         self.email = email
@@ -29,6 +30,7 @@ class User:
         self.created_at = created_at
         self.updated_at = updated_at
         self.profile_picture_url = profile_picture_url
+        self.is_active = is_active
 
 
 class ApplicationCycle:

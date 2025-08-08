@@ -16,6 +16,7 @@ class AdminUserResponse(BaseModel):
     email: EmailStr
     role: str
     profile_picture: str | None = None
+    is_active: bool
 
 
 class AdminCycleCreateRequest(BaseModel):
@@ -40,6 +41,7 @@ class AdminUpdateUserRequest(BaseModel):
     email: EmailStr | None = None
     password: str | None = None
     role: str | None = None
+    is_active: bool | None = None
 
 
 class AdminUpdateCycleRequest(BaseModel):
