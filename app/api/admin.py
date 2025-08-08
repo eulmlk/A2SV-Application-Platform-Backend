@@ -223,6 +223,7 @@ def update_user(
         full_name=updated.full_name,
         email=updated.email,
         role=role_name,
+        profile_picture=updated.profile_picture,
     )
     return APIResponse(data=response_data, message="User updated successfully.")
 
@@ -275,6 +276,7 @@ def create_cycle(
         end_date=data.end_date,
         is_active=False,
         created_at=datetime.now(timezone.utc),
+        description=data.description if data.description else None,
     )
     created = cycle_repo.create(cycle)
     response_data = AdminCycleResponse(
@@ -284,6 +286,7 @@ def create_cycle(
         end_date=created.end_date,
         is_active=created.is_active,
         created_at=created.created_at,
+        description=created.description if created.description else None,
     )
     return APIResponse(data=response_data, message="Cycle created successfully.")
 
@@ -342,6 +345,7 @@ def update_cycle(
         end_date=updated.end_date,
         is_active=updated.is_active,
         created_at=updated.created_at,
+        description=updated.description if updated.description else None,
     )
     return APIResponse(data=response_data, message="Cycle updated successfully.")
 

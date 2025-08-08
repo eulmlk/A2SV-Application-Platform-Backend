@@ -40,6 +40,7 @@ class ApplicationCycle:
         end_date: date,
         is_active: bool,
         created_at: datetime,
+        description: Optional[str] = None,
     ):
         self.id = id
         self.name = name
@@ -47,6 +48,7 @@ class ApplicationCycle:
         self.end_date = end_date
         self.is_active = is_active
         self.created_at = created_at
+        self.description = description
 
 
 class Application:

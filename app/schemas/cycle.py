@@ -10,6 +10,7 @@ class PublicCycleResponse(BaseModel):
     end_date: date
     is_active: bool
     created_at: datetime
+    description: str | None = None
 
 
 class PublicCycleListResponse(BaseModel):

@@ -265,15 +265,16 @@ class ApplicationRepository(IApplicationRepository):
         self.db.commit()
         return True
 
-    def list_by_reviewer(self, reviewer_id: uuid.UUID, offset: int = 0, limit: int = None):
-        query = (
-            self.db.query(ApplicationModel)
-            .filter(ApplicationModel.assigned_reviewer_id == reviewer_id)
+    def list_by_reviewer(
+        self, reviewer_id: uuid.UUID, offset: int = 0, limit: int = None
+    ):
+        query = self.db.query(ApplicationModel).filter(
+            ApplicationModel.assigned_reviewer_id == reviewer_id
         )
-        
+
         if limit is not None:
             query = query.offset(offset).limit(limit)
-        
+
         apps = query.all()
         return [
             Application(
@@ -352,6 +353,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
                 end_date=cycle.end_date,
                 is_active=cycle.is_active,
                 created_at=cycle.created_at,
+                description=cycle.description,
             )
         return None
 
@@ -369,6 +371,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
                 end_date=cycle.end_date,
                 is_active=cycle.is_active,
                 created_at=cycle.created_at,
+                description=cycle.description,
             )
         return None
 
@@ -386,6 +389,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
                 end_date=cycle.end_date,
                 is_active=cycle.is_active,
                 created_at=cycle.created_at,
+                description=cycle.description,
             )
         return None
 
@@ -395,6 +399,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             start_date=cycle.start_date,
             end_date=cycle.end_date,
             is_active=cycle.is_active,
+            description=cycle.description,
         )
         self.db.add(db_cycle)
         self.db.commit()
@@ -406,6 +411,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             end_date=db_cycle.end_date,
             is_active=db_cycle.is_active,
             created_at=db_cycle.created_at,
+            description=db_cycle.description,
         )
 
     def activate(self, cycle_id: int):
@@ -431,6 +437,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             end_date=cycle.end_date,
             is_active=cycle.is_active,
             created_at=cycle.created_at,
+            description=cycle.description,
         )
 
     def list_all(self, offset: int = 0, limit: int = None):
@@ -446,6 +453,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
                 end_date=c.end_date,
                 is_active=c.is_active,
                 created_at=c.created_at,
+                description=c.description,
             )
             for c in cycles
         ]
@@ -473,6 +481,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             end_date=cycle.end_date,
             is_active=cycle.is_active,
             created_at=cycle.created_at,
+            description=cycle.description,
         )
 
     def delete(self, cycle_id: int):

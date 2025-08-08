@@ -11,8 +11,8 @@ engine = create_engine(settings.DATABASE_URL)
 Base.metadata.create_all(engine)
 
 
-def add_profile_picture_column():
-    """Add the 'profile_picture_url' column to the users table if it does not exist."""
+def add_description_column_to_cycle():
+    """Add the 'description' column to the application_cycles table if it does not exist."""
     db = Session(bind=engine)
     try:
         result = db.execute(
@@ -20,129 +20,23 @@ def add_profile_picture_column():
                 """
                 SELECT column_name
                 FROM information_schema.columns
-                WHERE table_name = 'users' AND column_name = 'profile_picture_url'
+                WHERE table_name = 'application_cycles' AND column_name = 'description'
                 """
             )
         )
         if not result.fetchone():
-            print("Adding 'profile_picture_url' column to users table...")
+            print("Adding 'description' column to application_cycles table...")
             db.execute(
                 text(
-                    "ALTER TABLE users ADD COLUMN profile_picture_url VARCHAR(512) NULL"
+                    "ALTER TABLE application_cycles ADD COLUMN description VARCHAR(500) NULL"
                 )
             )
             db.commit()
-            print("Successfully added 'profile_picture_url' column.")
+            print("Successfully added 'description' column.")
         else:
-            print("Column 'profile_picture_url' already exists in users table.")
+            print("Column 'description' already exists in application_cycles table.")
     except Exception as e:
-        print(f"Error adding 'profile_picture_url' column: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-
-def add_country_column():
-    """Ensure 'country' column exists, is populated, and is NOT NULL."""
-    db = Session(bind=engine)
-    try:
-        # Check if the column exists
-        result = db.execute(
-            text(
-                """
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'applications' AND column_name = 'country'
-                """
-            )
-        )
-        if not result.fetchone():
-            print(
-                "Column 'country' not found. Creating, populating, and setting NOT NULL..."
-            )
-            # Atomically add the column, populate existing rows, and set NOT NULL
-            db.execute(
-                text(
-                    "ALTER TABLE applications ADD COLUMN country VARCHAR(255) NOT NULL DEFAULT 'Ethiopia'"
-                )
-            )
-            # Remove the default so it doesn't apply to new records
-            db.execute(
-                text("ALTER TABLE applications ALTER COLUMN country DROP DEFAULT")
-            )
-            print("Successfully created 'country' column and populated existing rows.")
-        else:
-            print("Column 'country' exists. Checking for and populating NULL values...")
-            # If the column exists, it might have NULLs. Update them.
-            db.execute(
-                text(
-                    "UPDATE applications SET country = 'Ethiopia' WHERE country IS NULL"
-                )
-            )
-            # Ensure the NOT NULL constraint is in place for future inserts
-            db.execute(
-                text("ALTER TABLE applications ALTER COLUMN country SET NOT NULL")
-            )
-            print(
-                "Ensured all existing rows in 'country' column are populated and column is NOT NULL."
-            )
-
-        db.commit()
-    except Exception as e:
-        print(f"Error modifying 'country' column: {e}")
-        db.rollback()
-    finally:
-        db.close()
-
-
-def add_degree_column():
-    """Ensure 'degree' column exists, is populated, and is NOT NULL."""
-    db = Session(bind=engine)
-    try:
-        # Check if the column exists
-        result = db.execute(
-            text(
-                """
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'applications' AND column_name = 'degree'
-                """
-            )
-        )
-        if not result.fetchone():
-            print(
-                "Column 'degree' not found. Creating, populating, and setting NOT NULL..."
-            )
-            # Atomically add the column, populate existing rows, and set NOT NULL
-            db.execute(
-                text(
-                    "ALTER TABLE applications ADD COLUMN degree VARCHAR(255) NOT NULL DEFAULT 'B.Sc. in Software Engineering'"
-                )
-            )
-            # Remove the default so it doesn't apply to new records
-            db.execute(
-                text("ALTER TABLE applications ALTER COLUMN degree DROP DEFAULT")
-            )
-            print("Successfully created 'degree' column and populated existing rows.")
-        else:
-            print("Column 'degree' exists. Checking for and populating NULL values...")
-            # If the column exists, it might have NULLs. Update them.
-            db.execute(
-                text(
-                    "UPDATE applications SET degree = 'B.Sc. in Software Engineering' WHERE degree IS NULL"
-                )
-            )
-            # Ensure the NOT NULL constraint is in place for future inserts
-            db.execute(
-                text("ALTER TABLE applications ALTER COLUMN degree SET NOT NULL")
-            )
-            print(
-                "Ensured all existing rows in 'degree' column are populated and column is NOT NULL."
-            )
-
-        db.commit()
-    except Exception as e:
-        print(f"Error modifying 'degree' column: {e}")
+        print(f"Error adding 'description' column: {e}")
         db.rollback()
     finally:
         db.close()
@@ -190,8 +84,6 @@ def seed_roles_and_admin():
 
 
 if __name__ == "__main__":
-    add_profile_picture_column()
-    add_country_column()
-    add_degree_column()
+    add_description_column_to_cycle()
     seed_roles_and_admin()
     print("Seeding script finished.")

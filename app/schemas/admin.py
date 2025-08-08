@@ -15,12 +15,14 @@ class AdminUserResponse(BaseModel):
     full_name: str
     email: EmailStr
     role: str
+    profile_picture: str | None = None
 
 
 class AdminCycleCreateRequest(BaseModel):
     name: str
     start_date: date
     end_date: date
+    description: str | None = None
 
 
 class AdminCycleResponse(BaseModel):
@@ -30,6 +32,7 @@ class AdminCycleResponse(BaseModel):
     end_date: date
     is_active: bool
     created_at: datetime
+    description: str | None = None
 
 
 class AdminUpdateUserRequest(BaseModel):
@@ -43,6 +46,7 @@ class AdminUpdateCycleRequest(BaseModel):
     name: str | None = None
     start_date: date | None = None
     end_date: date | None = None
+    description: str | None = None
 
 
 class AdminListUsersResponse(BaseModel):

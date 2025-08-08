@@ -107,3 +107,4 @@ docs/_build/
 
 .env
 *.env
+todo.md

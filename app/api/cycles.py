@@ -39,6 +39,7 @@ def get_all_cycles(
                 end_date=c.end_date,
                 is_active=c.is_active,
                 created_at=c.created_at,
+                description=c.description if c.description else None,
             )
             for c in cycles
         ],
@@ -62,5 +63,6 @@ def get_cycle_by_id(cycle_id: int, db: Session = Depends(get_db)):
         end_date=c.end_date,
         is_active=c.is_active,
         created_at=c.created_at,
+        description=c.description if c.description else None,
     )
     return APIResponse(data=response_data, message="Cycle retrieved successfully.")

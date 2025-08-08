@@ -86,9 +86,11 @@ async def update_profile(
         finally:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
+
     updated = user_repo.update(current_user.id, **update_data)
     if not updated:
         raise HTTPException(status_code=404, detail="User not found.")
+    
     role_repo = RoleRepository(db)
     role = role_repo.get_by_id(updated.role_id)
     response_data = ProfileResponse(
@@ -98,6 +100,7 @@ async def update_profile(
         role=role.name,
         profile_picture_url=updated.profile_picture_url,
     )
+    
     return APIResponse(data=response_data, message="Profile updated successfully.")
 
 
