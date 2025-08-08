@@ -8,11 +8,13 @@ from app.schemas.admin import (
     AdminUpdateUserRequest,
     AdminUpdateCycleRequest,
     AdminListUsersResponse,
+    AnalyticsResponse,  # Import the new schema
 )
 from app.core.database import get_db
 from app.repositories.sqlalchemy_impl import (
     UserRepository,
     RoleRepository,
+    ApplicationRepository,
     ApplicationCycleRepository,
 )
 from app.core.security import (
@@ -47,6 +49,68 @@ def get_access_token_payload(
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get(
+    "/analytics/",
+    response_model=APIResponse[AnalyticsResponse],
+    dependencies=[Depends(bearer_scheme)],
+)
+def get_analytics(
+    current_user=Depends(admin_required),
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
+    get_access_token_payload(credentials)
+    app_repo = ApplicationRepository(db)
+
+    total_applicants = app_repo.count_all()
+
+    # Handle case with no applications to avoid division by zero
+    if total_applicants == 0:
+        response_data = AnalyticsResponse(
+            total_applicants=0,
+            acceptance_rate=0.0,
+            average_review_time_days=0.0,
+            application_funnel={},
+            school_distribution={},
+            country_distribution={},
+        )
+        return APIResponse(
+            data=response_data, message="Analytics data retrieved successfully."
+        )
+
+    # Acceptance Rate
+    accepted_count = app_repo.count_by_status("accepted")
+    acceptance_rate = (accepted_count / total_applicants) * 100
+
+    # Average Review Time
+    avg_review_time_days = app_repo.get_average_review_time()
+
+    # Application Funnel
+    status_dist = app_repo.get_status_distribution()
+    application_funnel = {status: count for status, count in status_dist}
+
+    # School Distribution
+    school_dist = app_repo.get_school_distribution()
+    school_distribution = {school: count for school, count in school_dist}
+
+    # Country Distribution
+    country_dist = app_repo.get_country_distribution()
+    country_distribution = {country: count for country, count in country_dist}
+
+    response_data = AnalyticsResponse(
+        total_applicants=total_applicants,
+        acceptance_rate=round(acceptance_rate, 2),
+        average_review_time_days=round(avg_review_time_days, 2),
+        application_funnel=application_funnel,
+        school_distribution=school_distribution,
+        country_distribution=country_distribution,
+    )
+
+    return APIResponse(
+        data=response_data, message="Analytics data retrieved successfully."
+    )
 
 
 @router.get(

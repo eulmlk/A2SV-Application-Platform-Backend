@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import List
+from typing import List, Dict
 from datetime import date, datetime
 
 
@@ -56,3 +56,12 @@ class AdminListUsersResponse(BaseModel):
     total_count: int
     page: int
     limit: int
+
+
+class AnalyticsResponse(BaseModel):
+    total_applicants: int
+    acceptance_rate: float
+    average_review_time_days: float
+    application_funnel: Dict[str, int]
+    school_distribution: Dict[str, int]
+    country_distribution: Dict[str, int]

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.domain.entities import User, Application
 from app.models.user import User as UserModel
 from app.models.application import Application as ApplicationModel
@@ -304,6 +305,75 @@ class ApplicationRepository(IApplicationRepository):
             )
             for a in apps
         ]
+
+    def count_all(self):
+        return self.db.query(ApplicationModel).count()
+
+    def count_by_status(self, status: str):
+        return (
+            self.db.query(ApplicationModel)
+            .filter(ApplicationModel.status == status)
+            .count()
+        )
+
+    def get_status_distribution(self):
+        """Returns a list of tuples (status, count)"""
+        return (
+            self.db.query(ApplicationModel.status, func.count(ApplicationModel.status))
+            .group_by(ApplicationModel.status)
+            .all()
+        )
+
+    def get_school_distribution(self):
+        """Returns a list of tuples (school, count)"""
+        return (
+            self.db.query(ApplicationModel.school, func.count(ApplicationModel.school))
+            .group_by(ApplicationModel.school)
+            .order_by(func.count(ApplicationModel.school).desc())
+            .all()
+        )
+
+    def get_country_distribution(self):
+        """Returns a list of tuples (country, count)"""
+        return (
+            self.db.query(
+                ApplicationModel.country, func.count(ApplicationModel.country)
+            )
+            .group_by(ApplicationModel.country)
+            .order_by(func.count(ApplicationModel.country).desc())
+            .all()
+        )
+
+    def get_average_review_time(self):
+        """
+        Calculates the average review time in days for finalized applications.
+        This version is for PostgreSQL.
+        """
+        final_statuses = ["Accepted", "Rejected"]
+
+        # Calculate the average difference in seconds using PostgreSQL's EXTRACT(EPOCH ...)
+        avg_seconds = (
+            self.db.query(
+                func.avg(
+                    func.extract(
+                        "epoch",
+                        ApplicationModel.updated_at - ApplicationModel.submitted_at,
+                    )
+                )
+            )
+            .filter(
+                ApplicationModel.status.in_(final_statuses),
+                ApplicationModel.submitted_at.isnot(None),
+            )
+            .scalar()
+        )
+
+        if avg_seconds is None:
+            return 0.0
+
+        # Convert average seconds to days
+        avg_days = avg_seconds / (24 * 60 * 60)
+        return avg_days
 
     def list_by_status(self, status: str):
         return []  # Not needed for applicant workflow
