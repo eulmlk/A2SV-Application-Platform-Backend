@@ -491,11 +491,6 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
         )
 
     def activate(self, cycle_id: int):
-        # Deactivate all
-        self.db.query(ApplicationCycleModel).update(
-            {ApplicationCycleModel.is_active: False}
-        )
-        # Activate one
         cycle = (
             self.db.query(ApplicationCycleModel)
             .filter(ApplicationCycleModel.id == cycle_id)
@@ -503,9 +498,11 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
         )
         if not cycle:
             return None
+
         cycle.is_active = True
         self.db.commit()
         self.db.refresh(cycle)
+
         return ApplicationCycle(
             id=cycle.id,
             name=cycle.name,
@@ -517,6 +514,7 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
         )
 
     def deactivate(self, cycle_id: int):
+        """Deactivates a single application cycle."""
         cycle = (
             self.db.query(ApplicationCycleModel)
             .filter(ApplicationCycleModel.id == cycle_id)
@@ -524,9 +522,11 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
         )
         if not cycle:
             return None
+
         cycle.is_active = False
         self.db.commit()
         self.db.refresh(cycle)
+
         return ApplicationCycle(
             id=cycle.id,
             name=cycle.name,
@@ -537,11 +537,15 @@ class ApplicationCycleRepository(IApplicationCycleRepository):
             description=cycle.description,
         )
 
-    def list_all(self, offset: int = 0, limit: int = None):
+    def list_all(self, offset: int = 0, limit: int = None, is_active: bool = None):
         query = self.db.query(ApplicationCycleModel)
+        if is_active is not None:
+            query = query.filter(ApplicationCycleModel.is_active == is_active)
+
         if limit is not None:
             query = query.offset(offset).limit(limit)
         cycles = query.all()
+        print(cycles)
         return [
             ApplicationCycle(
                 id=c.id,

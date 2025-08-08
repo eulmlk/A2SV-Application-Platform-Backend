@@ -50,6 +50,42 @@ def get_all_cycles(
     return APIResponse(data=response_data, message="Cycles retrieved successfully.")
 
 
+@router.get("/active/", response_model=APIResponse[PublicCycleListResponse])
+def get_active_cycles(db: Session = Depends(get_db)):
+    """
+    Retrieves all active application cycles.
+    """
+    repo = ApplicationCycleRepository(db)
+    active_cycles = repo.list_all(is_active=True)
+    if not active_cycles:
+        return APIResponse(
+            data=PublicCycleListResponse(cycles=[], total_count=0, page=1, limit=10),
+            message="No active cycles found.",
+        )
+
+    response_data = PublicCycleListResponse(
+        cycles=[
+            PublicCycleResponse(
+                id=c.id,
+                name=c.name,
+                start_date=c.start_date,
+                end_date=c.end_date,
+                is_active=c.is_active,
+                created_at=c.created_at,
+                description=c.description if c.description else None,
+            )
+            for c in active_cycles
+        ],
+        total_count=len(active_cycles),
+        page=1,
+        limit=len(active_cycles),
+    )
+
+    return APIResponse(
+        data=response_data, message="Active cycles retrieved successfully."
+    )
+
+
 @router.get("/{cycle_id}/", response_model=APIResponse[PublicCycleResponse])
 def get_cycle_by_id(cycle_id: int, db: Session = Depends(get_db)):
     repo = ApplicationCycleRepository(db)
